@@ -1,24 +1,19 @@
 server:
-  port: 8080
+  port: 8081
 
 spring:
   application:
     name: auth-service
   datasource:
-    url: jdbc:mysql://mysql:3306/auth_service
+    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3306/auth_db}
     username: root
-    password: password
-  data:
-    mongodb:
-      uri: mongodb://mongo:27017/auth_service
+    password: root
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
 
 eureka:
   client:
     serviceUrl:
-      defaultZone: http://eureka:8761/eureka/
-
-management:
-  endpoints:
-    web:
-      exposure:
-        include: "*"
+      defaultZone: ${EUREKA_SERVER:http://localhost:8761/eureka/}

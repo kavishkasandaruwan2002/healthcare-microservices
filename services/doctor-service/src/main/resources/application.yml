@@ -1,24 +1,14 @@
 server:
-  port: 8080
+  port: 8083
 
 spring:
   application:
     name: doctor-service
-  datasource:
-    url: jdbc:mysql://mysql:3306/doctor_service
-    username: root
-    password: password
   data:
     mongodb:
-      uri: mongodb://mongo:27017/doctor_service
+      uri: ${SPRING_DATA_MONGODB_URI:mongodb://localhost:27017/doctor_db}
 
 eureka:
   client:
     serviceUrl:
-      defaultZone: http://eureka:8761/eureka/
-
-management:
-  endpoints:
-    web:
-      exposure:
-        include: "*"
+      defaultZone: ${EUREKA_SERVER:http://localhost:8761/eureka/}
