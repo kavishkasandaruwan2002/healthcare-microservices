@@ -1,0 +1,5 @@
+spring:
+  datasource:
+    url: telemedicine:
+  agora:
+    appId: ${AGORA_APP_ID}
