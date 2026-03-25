@@ -2,26 +2,26 @@ version: '3.8'
 
 services:
   eureka:
-    build: ../services/eureka-server
+    build: services/eureka-server
     ports:
       - "8761:8761"
 
   mysql:
     image: mysql:8.0
     environment:
-      MYSQL_ROOT_PASSWORD: root
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-root}
       MYSQL_DATABASE: healthcare_db
     ports:
       - "3306:3306"
     volumes:
-      - ../databases/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./databases/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql
 
   mongo:
     image: mongo:latest
     ports:
       - "27017:27017"
     volumes:
-      - ../databases/mongo/init.js:/docker-entrypoint-initdb.d/init.js
+      - ./databases/mongo/init.js:/docker-entrypoint-initdb.d/init.js
 
   rabbitmq:
     image: rabbitmq:3-management
@@ -30,7 +30,7 @@ services:
       - "15672:15672"
 
   gateway:
-    build: ../gateway
+    build: gateway
     ports:
       - "8080:8080"
     environment:
@@ -40,49 +40,49 @@ services:
       - mongo
 
   auth-service:
-    build: ../services/auth-service
+    build: services/auth-service
     environment:
       - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/auth_db
     depends_on:
       - mysql
 
   patient-service:
-    build: ../services/patient-service
+    build: services/patient-service
     environment:
       - SPRING_DATA_MONGODB_URI=mongodb://mongo:27017/patient_db
     depends_on:
       - mongo
 
   doctor-service:
-    build: ../services/doctor-service
+    build: services/doctor-service
     environment:
       - SPRING_DATA_MONGODB_URI=mongodb://mongo:27017/doctor_db
     depends_on:
       - mongo
 
   appointment-service:
-    build: ../services/appointment-service
+    build: services/appointment-service
     depends_on:
       - mysql
 
   payment-service:
-    build: ../services/payment-service
+    build: services/payment-service
     environment:
       - STRIPE_API_KEY=${STRIPE_API_KEY}
 
   notification-service:
-    build: ../services/notification-service
+    build: services/notification-service
 
   telemedicine-service:
-    build: ../services/telemedicine-service
+    build: services/telemedicine-service
     environment:
       - AGORA_APP_ID=${AGORA_APP_ID}
 
   ai-service:
-    build: ../services/ai-service
+    build: services/ai-service
 
   client:
-    build: ../client
+    build: client
     ports:
       - "3000:3000"
     depends_on:
