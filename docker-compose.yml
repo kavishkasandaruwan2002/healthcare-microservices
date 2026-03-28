@@ -141,12 +141,12 @@ services:
     container_name: appointment-service
     environment:
       - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE:-docker}
-      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/${MYSQL_DATABASE:-healthcare_db}
+      - SPRING_DATA_MONGODB_URI=mongodb://mongo:27017/appointment_db
       - EUREKA_SERVER=${EUREKA_SERVER:-http://eureka:8761/eureka/}
     depends_on:
       eureka:
         condition: service_healthy
-      mysql:
+      mongo:
         condition: service_healthy
     networks:
       - healthcare-network
