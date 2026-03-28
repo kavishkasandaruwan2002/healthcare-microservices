@@ -10,15 +10,12 @@ import org.springframework.web.bind.annotation.RestController;
 @SpringBootApplication
 @EnableEurekaClient
 @EnableFeignClients
-@RestController
+@SpringBootApplication
+@EnableEurekaClient
+@EnableFeignClients
 public class PatientApplication {
 
     public static void main(String[] args) {
         SpringApplication.run(PatientApplication.class, args);
-    }
-
-    @GetMapping("/api/patients/health")
-    public String health() {
-        return "Patient Service is up and running!";
     }
 }
