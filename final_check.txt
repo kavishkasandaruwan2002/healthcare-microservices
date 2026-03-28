@@ -1,0 +1,15 @@
+﻿NAMES                  STATUS                   PORTS
+frontend-client        Created                  
+patient-service        Up 9 seconds             8080/tcp
+notification-service   Up 3 minutes             8080/tcp
+api-gateway            Created                  
+payment-service        Up 3 minutes             8080/tcp
+ai-service             Up 3 minutes             8088/tcp
+telemedicine-service   Up 4 seconds             8080/tcp
+appointment-service    Up 3 minutes             8080/tcp
+auth-service           Up 3 minutes             8080/tcp
+doctor-service         Up 3 minutes             8080/tcp
+eureka-server          Up 4 minutes (healthy)   0.0.0.0:8761->8761/tcp, [::]:8761->8761/tcp
+rabbitmq               Up 2 hours (healthy)     0.0.0.0:5672->5672/tcp, [::]:5672->5672/tcp, 0.0.0.0:15672->15672/tcp, [::]:15672->15672/tcp
+mysql-db               Up 2 hours (healthy)     0.0.0.0:3306->3306/tcp, [::]:3306->3306/tcp
+mongo-db               Up 2 hours (healthy)     0.0.0.0:27017->27017/tcp, [::]:27017->27017/tcp
