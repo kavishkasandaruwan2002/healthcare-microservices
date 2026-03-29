@@ -1,5 +1,5 @@
 server:
-  port: 8080
+  port: 8085
 
 spring:
   application:
@@ -54,4 +54,25 @@ spring:
 eureka:
   client:
     serviceUrl:
-      defaultZone: http://eureka:8761/eureka/
+      defaultZone: ${EUREKA_SERVER:http://localhost:8761/eureka/}
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    urls:
+      - name: Auth Service
+        url: /api/auth/v3/api-docs
+      - name: Patient Service
+        url: /api/patients/v3/api-docs
+      - name: Doctor Service
+        url: /api/doctors/v3/api-docs
+      - name: Appointment Service
+        url: /api/appointments/v3/api-docs
+      - name: Payment Service
+        url: /api/payments/v3/api-docs
+      - name: Notification Service
+        url: /api/notifications/v3/api-docs
+      - name: Telemedicine Service
+        url: /api/telemedicine/v3/api-docs
+      - name: AI Service
+        url: /api/ai/v3/api-docs
