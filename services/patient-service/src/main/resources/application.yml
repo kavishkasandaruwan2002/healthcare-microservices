@@ -7,8 +7,15 @@ spring:
   data:
     mongodb:
       uri: ${SPRING_DATA_MONGODB_URI:mongodb://localhost:27017/patient_db}
+      auto-index-creation: true
 
 eureka:
   client:
     serviceUrl:
       defaultZone: ${EUREKA_SERVER:http://localhost:8761/eureka/}
+
+springdoc:
+  api-docs:
+    path: /api/patients/v3/api-docs
+  swagger-ui:
+    path: /api/patients/swagger-ui.html

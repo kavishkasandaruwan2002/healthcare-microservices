@@ -6,14 +6,21 @@ services:
     container_name: eureka-server
     ports:
       - "${EUREKA_PORT:-8761}:8761"
+    environment:
+      - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE:-docker}
     networks:
       - healthcare-network
     restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+      mongo:
+        condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8761/"]
+      test: ["CMD", "curl", "-f", "http://localhost:8761/actuator/health"]
       interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 10
 
   mysql:
     image: mysql:8.0
@@ -21,6 +28,8 @@ services:
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
       MYSQL_DATABASE: ${MYSQL_DATABASE:-healthcare_db}
+      MYSQL_USER: ${MYSQL_USER:-healthcare_user}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-healthcare_password}
     ports:
       - "3306:3306"
     volumes:
@@ -30,10 +39,10 @@ services:
       - healthcare-network
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-root}"]
       interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 10
 
   mongo:
     image: mongo:latest
@@ -50,7 +59,7 @@ services:
       test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
       interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 10
 
   rabbitmq:
     image: rabbitmq:3-management
@@ -65,26 +74,27 @@ services:
       test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
       interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 10
 
   gateway:
     build: gateway
     container_name: api-gateway
     ports:
-      - "${GATEWAY_PORT:-8080}:8080"
+      - "${GATEWAY_PORT:-8085}:8085"
     environment:
       - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE:-docker}
       - EUREKA_SERVER=${EUREKA_SERVER:-http://eureka:8761/eureka/}
     depends_on:
       eureka:
         condition: service_healthy
-      mysql:
-        condition: service_healthy
-      mongo:
-        condition: service_healthy
     networks:
       - healthcare-network
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8085/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
 
   auth-service:
     build: services/auth-service
@@ -214,10 +224,10 @@ services:
     ports:
       - "${FRONTEND_PORT:-3000}:3000"
     environment:
-      - NEXT_PUBLIC_API_URL=http://api-gateway:8080
+      - NEXT_PUBLIC_API_URL=http://api-gateway:8085
     depends_on:
       gateway:
-        condition: service_started
+        condition: service_healthy
     networks:
       - healthcare-network
     restart: unless-stopped

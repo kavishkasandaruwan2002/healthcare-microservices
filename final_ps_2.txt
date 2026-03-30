@@ -1,0 +1,15 @@
+﻿NAMES                  STATUS
+frontend-client        Created
+patient-service        Up 11 seconds
+notification-service   Up About a minute
+api-gateway            Created
+payment-service        Up About a minute
+ai-service             Up About a minute
+telemedicine-service   Up 10 seconds
+appointment-service    Up About a minute
+auth-service           Up About a minute
+doctor-service         Up About a minute
+eureka-server          Up About a minute (healthy)
+rabbitmq               Up 2 hours (healthy)
+mysql-db               Up 2 hours (healthy)
+mongo-db               Up 2 hours (healthy)

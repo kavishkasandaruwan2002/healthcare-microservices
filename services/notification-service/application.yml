@@ -1,5 +1,0 @@
-spring:
-  datasource:
-    url: notification:
-  email:
-    host: smtp.gmail.com

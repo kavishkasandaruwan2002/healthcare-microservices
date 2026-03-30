@@ -27,6 +27,12 @@ eureka:
     serviceUrl:
       defaultZone: ${EUREKA_SERVER:http://localhost:8761/eureka/}
 
+springdoc:
+  api-docs:
+    path: /api/telemedicine/v3/api-docs
+  swagger-ui:
+    path: /api/telemedicine/swagger-ui.html
+
 # Agora
 agora:
   appId: ${AGORA_APP_ID}
