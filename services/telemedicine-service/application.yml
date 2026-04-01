@@ -1,5 +1,7 @@
 spring:
   datasource:
-    url: telemedicine:
+    url: jdbc:postgresql://localhost:5432/telemedicine_db
+    username: postgres
+    password: postgres
   agora:
-    appId: ${AGORA_APP_ID}
+        appId: ${AGORA_APP_ID}

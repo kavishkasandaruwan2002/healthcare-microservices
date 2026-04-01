@@ -29,4 +29,21 @@
       </dependency>
     </dependencies>
   </dependencyManagement>
+  <build>
+    <plugins>
+      <!-- Spring Boot plugin: makes executable JAR -->
+      <plugin>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-maven-plugin</artifactId>
+        <version>2.7.5</version> <!-- match your Spring Boot version -->
+        <executions>
+          <execution>
+            <goals>
+              <goal>repackage</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
 </project>
