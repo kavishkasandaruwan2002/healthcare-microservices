@@ -1,5 +1,5 @@
 server:
-  port: 8084
+  port: 8080
 
 spring:
   application:
@@ -19,3 +19,5 @@ springdoc:
     path: /api/appointments/v3/api-docs
   swagger-ui:
     path: /api/appointments/swagger-ui.html
+
+

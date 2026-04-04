@@ -1,5 +1,5 @@
 server:
-  port: 8087
+  port: 8080
 
 spring:
   application:
@@ -41,3 +41,5 @@ agora:
 # JWT
 jwt:
   secret: ${JWT_SECRET:your_jwt_secret_key_here}
+
+

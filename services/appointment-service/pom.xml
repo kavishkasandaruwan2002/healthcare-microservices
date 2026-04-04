@@ -29,6 +29,7 @@
       <artifactId>springdoc-openapi-ui</artifactId>
       <version>1.6.12</version>
     </dependency>
+  
   </dependencies>
   <dependencyManagement>
     <dependencies>
@@ -39,7 +40,8 @@
         <type>pom</type>
         <scope>import</scope>
       </dependency>
-    </dependencies>
+    
+  </dependencies>
   </dependencyManagement>
 
   <build>
