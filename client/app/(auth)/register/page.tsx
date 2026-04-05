@@ -28,7 +28,7 @@ export default function RegisterPage() {
     e.preventDefault()
     try {
       setLoading(true)
-      await api.post('/auth/register', formData)
+      await api.post('/patients/register', formData)
       toast.success('Registration successful! Please login.')
       router.push('/login')
     } catch (err: any) {

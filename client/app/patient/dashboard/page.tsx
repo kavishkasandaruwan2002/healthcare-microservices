@@ -17,12 +17,12 @@ export default function PatientDashboard() {
   useEffect(() => {
     if (!isAuthenticated) {
       router.push('/login')
-    } else if (user?.role !== 'PATIENT') {
+    } else if (user?.role !== 'ROLE_PATIENT' && user?.role !== 'PATIENT') {
       router.push('/')
     }
   }, [isAuthenticated, user, router])
 
-  if (!user || user.role !== 'PATIENT') return null
+  if (!user || (user.role !== 'ROLE_PATIENT' && user.role !== 'PATIENT')) return null
 
   return (
     <div className="flex min-h-screen bg-slate-50 text-slate-900">

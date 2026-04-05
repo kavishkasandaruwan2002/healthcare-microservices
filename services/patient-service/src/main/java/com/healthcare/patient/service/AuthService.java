@@ -3,6 +3,7 @@ package com.healthcare.patient.service;
 import com.healthcare.patient.dto.AuthResponse;
 import com.healthcare.patient.dto.LoginRequest;
 import com.healthcare.patient.dto.RegisterRequest;
+import com.healthcare.patient.dto.UserDto;
 import com.healthcare.patient.model.Patient;
 import com.healthcare.patient.repository.PatientRepository;
 import com.healthcare.patient.security.JwtService;
@@ -15,6 +16,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.Collections;
+import com.healthcare.patient.exception.EmailAlreadyExistsException;
 
 @Service
 @RequiredArgsConstructor
@@ -27,7 +29,7 @@ public class AuthService {
 
     public AuthResponse register(RegisterRequest request) {
         if (repository.existsByEmail(request.getEmail())) {
-            throw new RuntimeException("Email already exists");
+            throw new EmailAlreadyExistsException("Email already exists");
         }
 
         Patient patient = Patient.builder()
@@ -50,10 +52,16 @@ public class AuthService {
         );
 
         String jwtToken = jwtService.generateToken(userDetails);
+        UserDto userDto = UserDto.builder()
+                .id(patient.getId())
+                .email(patient.getEmail())
+                .name(patient.getName())
+                .role(patient.getRole())
+                .build();
+
         return AuthResponse.builder()
                 .token(jwtToken)
-                .patientId(patient.getId())
-                .email(patient.getEmail())
+                .user(userDto)
                 .build();
     }
 
@@ -75,10 +83,16 @@ public class AuthService {
         );
 
         String jwtToken = jwtService.generateToken(userDetails);
+        UserDto userDto = UserDto.builder()
+                .id(patient.getId())
+                .email(patient.getEmail())
+                .name(patient.getName())
+                .role(patient.getRole())
+                .build();
+
         return AuthResponse.builder()
                 .token(jwtToken)
-                .patientId(patient.getId())
-                .email(patient.getEmail())
+                .user(userDto)
                 .build();
     }
 }
