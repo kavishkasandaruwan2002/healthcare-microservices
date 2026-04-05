@@ -29,4 +29,5 @@ public class RegisterRequest {
     private Integer age;
     private String gender;
     private String address;
+    private String role;
 }

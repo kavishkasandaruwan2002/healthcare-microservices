@@ -55,6 +55,14 @@ public class PatientService {
         patientRepository.deleteById(id);
     }
 
+    public PatientDTO updateRole(String id, String role) {
+        Patient patient = patientRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Patient not found"));
+        patient.setRole(role);
+        patientRepository.save(patient);
+        return mapToDTO(patient);
+    }
+
     // Reports
     public MedicalReport uploadReport(String patientId, String fileName, String fileUrl) {
         MedicalReport report = MedicalReport.builder()
@@ -95,6 +103,7 @@ public class PatientService {
                 .age(patient.getAge())
                 .gender(patient.getGender())
                 .address(patient.getAddress())
+                .role(patient.getRole())
                 .build();
     }
 }

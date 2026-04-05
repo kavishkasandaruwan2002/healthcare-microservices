@@ -32,6 +32,11 @@ public class AuthService {
             throw new EmailAlreadyExistsException("Email already exists");
         }
 
+        String role = request.getRole() != null ? request.getRole() : "PATIENT";
+        if (!role.startsWith("ROLE_")) {
+            role = "ROLE_" + role.toUpperCase();
+        }
+
         Patient patient = Patient.builder()
                 .name(request.getName())
                 .email(request.getEmail())
@@ -40,7 +45,7 @@ public class AuthService {
                 .age(request.getAge())
                 .gender(request.getGender())
                 .address(request.getAddress())
-                .role("ROLE_PATIENT")
+                .role(role)
                 .build();
 
         repository.save(patient);
