@@ -43,6 +43,12 @@ public class PatientController {
         return ResponseEntity.ok(patientService.getAllPatients());
     }
 
+    @PostMapping("/{id}/promote")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<PatientDTO> promoteToAdmin(@PathVariable String id) {
+        return ResponseEntity.ok(patientService.updateRole(id, "ROLE_ADMIN"));
+    }
+
     // Medical Reports
     @PostMapping("/{id}/reports")
     public ResponseEntity<MedicalReport> uploadReport(

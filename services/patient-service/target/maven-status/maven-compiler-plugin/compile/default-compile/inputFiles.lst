@@ -6,6 +6,7 @@ C:\Users\user\OneDrive\Desktop\healthcare-microservices\services\patient-service
 C:\Users\user\OneDrive\Desktop\healthcare-microservices\services\patient-service\src\main\java\com\healthcare\patient\service\AuthService.java
 C:\Users\user\OneDrive\Desktop\healthcare-microservices\services\patient-service\src\main\java\com\healthcare\patient\controller\AuthController.java
 C:\Users\user\OneDrive\Desktop\healthcare-microservices\services\patient-service\src\main\java\com\healthcare\patient\exception\GlobalExceptionHandler.java
+C:\Users\user\OneDrive\Desktop\healthcare-microservices\services\patient-service\src\main\java\com\healthcare\patient\exception\EmailAlreadyExistsException.java
 C:\Users\user\OneDrive\Desktop\healthcare-microservices\services\patient-service\src\main\java\com\healthcare\patient\PatientApplication.java
 C:\Users\user\OneDrive\Desktop\healthcare-microservices\services\patient-service\src\main\java\com\healthcare\patient\controller\PatientController.java
 C:\Users\user\OneDrive\Desktop\healthcare-microservices\services\patient-service\src\main\java\com\healthcare\patient\repository\PatientRepository.java
