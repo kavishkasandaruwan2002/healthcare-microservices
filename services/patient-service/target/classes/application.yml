@@ -1,5 +1,5 @@
 server:
-  port: 8092
+  port: 8092Now Is it possible to add an appointment without any errors?
 
 spring:
   application:
