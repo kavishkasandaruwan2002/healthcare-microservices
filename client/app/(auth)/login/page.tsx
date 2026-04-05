@@ -22,16 +22,16 @@ export default function LoginPage() {
     e.preventDefault()
     try {
       setLoading(true)
-      const res = await api.post('/auth/login', { email, password })
+      const res = await api.post('/patients/login', { email, password })
       // Assuming res.data contains { token, user: { id, email, role, name } }
       const { token, user } = res.data
       setLogin(user, token)
       toast.success('Login successful!')
       
       // Redirect based on role
-      if (user.role === 'PATIENT') router.push('/patient/dashboard')
-      else if (user.role === 'DOCTOR') router.push('/doctor/dashboard')
-      else if (user.role === 'ADMIN') router.push('/admin/dashboard')
+      if (user.role === 'ROLE_PATIENT') router.push('/patient/dashboard')
+      else if (user.role === 'ROLE_DOCTOR') router.push('/doctor/dashboard')
+      else if (user.role === 'ROLE_ADMIN') router.push('/admin/dashboard')
       else router.push('/')
         
     } catch (err: any) {

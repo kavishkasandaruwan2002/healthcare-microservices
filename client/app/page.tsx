@@ -1,8 +1,20 @@
+"use client"
+
 import Link from 'next/link'
 import { Button } from '@/components/ui/Button'
 import { Activity, Calendar, FileText, Video } from 'lucide-react'
+import { useAuthStore } from '@/store/authStore'
+import { useRouter } from 'next/navigation'
 
 export default function LandingPage() {
+  const { isAuthenticated, user, logout } = useAuthStore()
+  const router = useRouter()
+
+  const handleLogout = () => {
+    logout()
+    router.refresh()
+  }
+
   return (
     <div className="flex min-h-screen flex-col">
       <header className="sticky top-0 z-50 w-full border-b bg-white/95 backdrop-blur">
@@ -12,12 +24,23 @@ export default function LandingPage() {
             <span className="text-xl font-bold tracking-tight">HealthCare</span>
           </div>
           <nav className="flex items-center gap-4">
-            <Link href="/login">
-              <Button variant="ghost">Log in</Button>
-            </Link>
-            <Link href="/register">
-              <Button>Sign Up</Button>
-            </Link>
+            {isAuthenticated ? (
+              <>
+                <Link href={user?.role === 'ROLE_PATIENT' || user?.role === 'PATIENT' ? '/patient/dashboard' : '/doctor/dashboard'}>
+                  <Button variant="ghost">Dashboard</Button>
+                </Link>
+                <Button onClick={handleLogout} variant="outline">Sign Out</Button>
+              </>
+            ) : (
+              <>
+                <Link href="/login">
+                  <Button variant="ghost">Log in</Button>
+                </Link>
+                <Link href="/register">
+                  <Button>Sign Up</Button>
+                </Link>
+              </>
+            )}
           </nav>
         </div>
       </header>

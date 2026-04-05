@@ -7,11 +7,13 @@ com\healthcare\patient\dto\RegisterRequest.class
 com\healthcare\patient\exception\ResourceNotFoundException.class
 com\healthcare\patient\repository\MedicalHistoryRepository.class
 com\healthcare\patient\model\Patient$PatientBuilder.class
+com\healthcare\patient\dto\UserDto.class
 com\healthcare\patient\model\MedicalHistory.class
 com\healthcare\patient\controller\AuthController.class
 com\healthcare\patient\service\PatientService.class
 com\healthcare\patient\service\AuthService.class
 com\healthcare\patient\dto\LoginRequest$LoginRequestBuilder.class
+com\healthcare\patient\dto\UserDto$UserDtoBuilder.class
 com\healthcare\patient\security\JwtAuthenticationFilter.class
 com\healthcare\patient\controller\PatientController.class
 com\healthcare\patient\dto\RegisterRequest$RegisterRequestBuilder.class
