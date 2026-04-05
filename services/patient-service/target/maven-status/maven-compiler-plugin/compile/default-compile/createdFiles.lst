@@ -21,6 +21,7 @@ com\healthcare\patient\dto\AuthResponse$AuthResponseBuilder.class
 com\healthcare\patient\model\Patient.class
 com\healthcare\patient\dto\LoginRequest.class
 com\healthcare\patient\model\MedicalHistory$MedicalHistoryBuilder.class
+com\healthcare\patient\exception\EmailAlreadyExistsException.class
 com\healthcare\patient\repository\PatientRepository.class
 com\healthcare\patient\security\JwtService.class
 com\healthcare\patient\model\MedicalReport.class
