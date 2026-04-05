@@ -1,35 +1,47 @@
 "use client"
 
 import { useEffect, useState, useCallback } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { useAuthStore } from '@/store/authStore'
 import { useRouter } from 'next/navigation'
 import api from '@/services/api'
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card'
-import { Button } from '@/components/ui/Button'
-import { 
-  Table, 
-  TableHeader, 
-  TableBody, 
-  TableRow, 
-  TableHead, 
-  TableCell 
-} from '@/components/ui/Table'
+import { Sidebar } from '@/components/ui/Sidebar'
+import { GlassCard } from '@/components/ui/GlassCard'
+import { AnimatedButton } from '@/components/ui/AnimatedButton'
 import { 
   Activity, 
   Users, 
   Stethoscope, 
   Calendar, 
   CreditCard, 
-  LogOut, 
   ShieldCheck, 
   Trash2, 
   CheckCircle, 
   XCircle,
   MoreVertical,
-  Plus
+  Plus,
+  Bell,
+  Search,
+  ArrowRight,
+  TrendingDown,
+  TrendingUp,
+  Cpu,
+  Database,
+  Globe
 } from 'lucide-react'
 import { toast } from 'react-hot-toast'
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+import { 
+  BarChart, 
+  Bar, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  ResponsiveContainer,
+  AreaChart,
+  Area
+} from 'recharts'
+import { cn } from '@/lib/utils'
 
 interface RemoteUser {
     id: string;
@@ -38,22 +50,23 @@ interface RemoteUser {
     role: string;
 }
 
-const mockAppointments = [
-  { name: 'Mon', appointments: 40 },
-  { name: 'Tue', appointments: 30 },
-  { name: 'Wed', appointments: 20 },
-  { name: 'Thu', appointments: 27 },
-  { name: 'Fri', appointments: 18 },
-  { name: 'Sat', appointments: 23 },
-  { name: 'Sun', appointments: 34 },
+const revenueData = [
+  { name: 'Mon', revenue: 4000, appointments: 40 },
+  { name: 'Tue', revenue: 3000, appointments: 30 },
+  { name: 'Wed', revenue: 2000, appointments: 20 },
+  { name: 'Thu', revenue: 2780, appointments: 27 },
+  { name: 'Fri', revenue: 1890, appointments: 18 },
+  { name: 'Sat', revenue: 2390, appointments: 23 },
+  { name: 'Sun', revenue: 3490, appointments: 34 },
 ];
 
 export default function AdminDashboard() {
-  const { user, logout, isAuthenticated } = useAuthStore()
+  const { user, isAuthenticated } = useAuthStore()
   const router = useRouter()
   const [activeTab, setActiveTab] = useState('overview')
   const [patients, setPatients] = useState<RemoteUser[]>([])
   const [loading, setLoading] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
 
   const fetchPatients = useCallback(async () => {
     try {
@@ -71,16 +84,13 @@ export default function AdminDashboard() {
   useEffect(() => {
     if (!isAuthenticated) {
       router.push('/login')
-    } else if (user?.role !== 'ADMIN' && user?.role !== 'ROLE_ADMIN') {
-      router.push('/')
+      return
     }
-  }, [isAuthenticated, user, router])
 
-  useEffect(() => {
     if (activeTab === 'users') {
         fetchPatients()
     }
-  }, [activeTab, fetchPatients])
+  }, [isAuthenticated, activeTab, fetchPatients, router])
 
   const handleDeleteUser = async (id: string) => {
     if (confirm('Are you sure you want to delete this user?')) {
@@ -104,324 +114,332 @@ export default function AdminDashboard() {
     }
   }
 
-  if (!user || (user.role !== 'ADMIN' && user.role !== 'ROLE_ADMIN')) return null
+  if (!isAuthenticated) return null
+
+  const stats = [
+    { label: 'Total Patients', value: '1,245', icon: <Users />, trend: '+12%', color: 'text-primary-600', bg: 'bg-primary-50' },
+    { label: 'Active Doctors', value: '84', icon: <Stethoscope />, trend: '+3%', color: 'text-accent-600', bg: 'bg-accent-50' },
+    { label: 'Weekly Revenue', value: '$12,400', icon: <CreditCard />, trend: '+24%', color: 'text-emerald-600', bg: 'bg-emerald-50' },
+    { label: 'System Health', value: '99.9%', icon: <Activity />, trend: 'Stable', color: 'text-rose-600', bg: 'bg-rose-50' },
+  ]
+
+  const filteredPatients = patients.filter(p => 
+    p.name?.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    p.email?.toLowerCase().includes(searchQuery.toLowerCase())
+  )
 
   return (
-    <div className="flex min-h-screen bg-[#f8fafc]">
-      {/* Sidebar */}
-      <aside className="w-72 bg-[#0f172a] text-slate-400 p-8 hidden lg:flex flex-col border-r border-slate-800 shadow-xl fixed h-full">
-        <div className="flex items-center gap-3 mb-12 px-2">
-          <div className="bg-blue-600 p-2 rounded-xl shadow-lg shadow-blue-500/20">
-            <ShieldCheck className="h-6 w-6 text-white" />
-          </div>
-          <div className="flex flex-col">
-            <span className="text-white font-bold text-lg tracking-tight uppercase">Admin</span>
-            <span className="text-[10px] text-blue-500 font-semibold tracking-widest uppercase">Health Hub Panel</span>
-          </div>
-        </div>
-
-        <nav className="space-y-2 flex-1">
-          {[
-            { id: 'overview', icon: Activity, label: 'Overview' },
-            { id: 'users', icon: Users, label: 'Patient Management' },
-            { id: 'doctors', icon: Stethoscope, label: 'Doctor Verification' },
-            { id: 'appointments', icon: Calendar, label: 'Appointments' },
-            { id: 'payments', icon: CreditCard, label: 'Platform Revenue' },
-          ].map((item) => (
-            <button
-              key={item.id}
-              onClick={() => setActiveTab(item.id)}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${
-                activeTab === item.id 
-                  ? 'bg-blue-600/10 text-blue-400 border border-blue-500/20 shadow-sm' 
-                  : 'hover:bg-slate-800/50 hover:text-slate-200 border border-transparent'
-              }`}
-            >
-              <item.icon className={`h-5 w-5 ${activeTab === item.id ? 'text-blue-500' : 'group-hover:text-blue-400'}`} />
-              <span className="font-medium">{item.label}</span>
-            </button>
-          ))}
-        </nav>
-
-        <div className="pt-8 border-t border-slate-800 mt-auto">
-          <div className="bg-slate-800/40 rounded-2xl p-4 mb-4 border border-slate-700/50">
-            <div className="flex items-center gap-3 mb-1">
-              <div className="h-8 w-8 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white font-bold text-xs">
-                {user.name?.[0] || 'A'}
-              </div>
-              <div className="flex flex-col overflow-hidden">
-                <span className="text-white text-sm font-semibold truncate">{user.name || 'Admin User'}</span>
-                <span className="text-[10px] text-slate-500 truncate">{user.email}</span>
-              </div>
-            </div>
-          </div>
-          <button 
-            onClick={() => { logout(); router.push('/login'); }}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-rose-400 hover:bg-rose-500/10 hover:text-rose-300 transition-all border border-transparent hover:border-rose-500/20"
+    <div className="flex min-h-screen bg-slate-50">
+      <Sidebar role="ADMIN" />
+      
+      <main className="flex-1 lg:ml-[80px] xl:ml-[280px] p-4 md:p-8 pt-20 lg:pt-8 transition-all duration-300">
+        {/* Header */}
+        <header className="mb-10 flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
           >
-            <LogOut className="h-5 w-5" /> 
-            <span className="font-medium">Sign Out</span>
-          </button>
-        </div>
-      </aside>
-
-      {/* Main Content */}
-      <main className="flex-1 lg:ml-72 p-8 lg:p-12 min-h-screen">
-        <header className="flex flex-col md:flex-row md:items-center justify-between mb-12 gap-4">
-          <div>
-            <h1 className="text-4xl font-extrabold text-slate-900 tracking-tight">
-              {activeTab === 'overview' ? 'Command Center' : activeTab.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
-            </h1>
-            <p className="text-slate-500 mt-2 font-medium flex items-center gap-2">
-              Management & Oversight Console <span className="h-1 w-1 rounded-full bg-slate-300"></span> 
-              <span className="text-blue-600">v1.2.0</span>
-            </p>
-          </div>
+            <h1 className="text-3xl font-bold tracking-tight text-slate-900">Platform Command Center</h1>
+            <p className="text-slate-500 font-medium">Global oversight and infrastructure management.</p>
+          </motion.div>
           
-          <div className="flex items-center gap-3">
-             <Button variant="outline" className="rounded-xl border-slate-200 text-slate-600 font-semibold h-11">
-                Download Report
-             </Button>
-             <Button className="rounded-xl bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-600/20 h-11 px-6">
-                <Plus className="h-4 w-4 mr-2" /> Action Hub
-             </Button>
-          </div>
+          <motion.div 
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="flex items-center gap-3"
+          >
+            <button className="flex h-12 w-12 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-400 transition-all hover:bg-slate-50 hover:text-primary-600">
+              <Bell className="h-5 w-5" />
+            </button>
+            <AnimatedButton className="h-12 gap-2 shadow-none">
+              <Plus className="h-4 w-4" /> System Report
+            </AnimatedButton>
+          </motion.div>
         </header>
 
-        {activeTab === 'overview' && (
-          <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            {/* Stats Grid */}
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-                {[
-                  { label: 'Total Patients', value: '1,245', icon: Users, trend: '+12%', color: 'blue' },
-                  { label: 'Active Doctors', value: '84', icon: Stethoscope, trend: '+5%', color: 'indigo' },
-                  { label: 'Weekly Sessions', value: '192', icon: Activity, trend: '+18%', color: 'emerald' },
-                  { label: 'Platform Revenue', value: '$12,400', icon: CreditCard, trend: '+24%', color: 'amber' },
-                ].map((stat, idx) => (
-                  <Card key={idx} className="border-0 shadow-sm ring-1 ring-slate-200/60 overflow-hidden group">
-                    <CardContent className="p-6">
-                      <div className="flex items-center justify-between mb-4">
-                        <div className={`h-12 w-12 rounded-2xl bg-${stat.color}-50 flex items-center justify-center border border-${stat.color}-100 group-hover:scale-110 transition-transform`}>
-                          <stat.icon className={`h-6 w-6 text-${stat.color}-600`} />
-                        </div>
-                        <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg border border-emerald-100 flex items-center gap-1">
-                          {stat.trend}
-                        </span>
-                      </div>
-                      <div className="flex flex-col">
-                        <span className="text-sm font-semibold text-slate-500 uppercase tracking-wider">{stat.label}</span>
-                        <span className="text-3xl font-black text-slate-900 mt-1 tracking-tighter">{stat.value}</span>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-            </div>
+        {/* Dynamic Tabs Indicator */}
+        <div className="mb-8 flex space-x-2">
+          {['overview', 'users', 'status'].map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={cn(
+                "px-6 py-2 rounded-xl text-sm font-bold transition-all duration-300 capitalize",
+                activeTab === tab 
+                  ? "bg-slate-900 text-white shadow-lg" 
+                  : "text-slate-500 hover:bg-slate-200/50"
+              )}
+            >
+              {tab}
+            </button>
+          ))}
+        </div>
 
-            {/* Charts Section */}
-            <div className="grid gap-8 lg:grid-cols-3">
-              <Card className="lg:col-span-2 border-0 shadow-sm ring-1 ring-slate-200/60">
-                <CardHeader className="flex flex-row items-center justify-between border-b border-slate-100/100 pb-6 px-8">
-                  <div>
-                    <CardTitle className="text-slate-900 text-xl">Platform Activity</CardTitle>
-                    <p className="text-slate-400 text-sm font-medium mt-1">Growth of scheduled appointments over 7 days</p>
-                  </div>
-                  <select className="bg-slate-50 border border-slate-200 text-slate-600 text-xs rounded-lg px-3 py-1.5 font-bold focus:ring-0">
-                    <option>Last 7 Days</option>
-                    <option>Last 30 Days</option>
-                  </select>
-                </CardHeader>
-                <CardContent className="pt-8 px-6">
-                  <div className="h-[400px] w-full">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={mockAppointments}>
-                        <defs>
-                          <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor="#3b82f6" stopOpacity={1} />
-                            <stop offset="100%" stopColor="#2563eb" stopOpacity={0.8} />
-                          </linearGradient>
-                        </defs>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                        <XAxis 
-                          dataKey="name" 
-                          axisLine={false} 
-                          tickLine={false} 
-                          tick={{fill: '#94a3b8', fontSize: 12, fontWeight: 500}} 
-                          dy={10}
-                        />
-                        <YAxis 
-                          axisLine={false} 
-                          tickLine={false} 
-                          tick={{fill: '#94a3b8', fontSize: 12, fontWeight: 500}} 
-                        />
-                        <Tooltip 
-                           cursor={{fill: '#f8fafc', radius: 8}} 
-                           contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', padding: '12px' }}
-                        />
-                        <Bar 
-                          dataKey="appointments" 
-                          fill="url(#barGradient)" 
-                          radius={[6, 6, 0, 0]} 
-                          barSize={45} 
-                        />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="border-0 shadow-sm ring-1 ring-slate-200/60">
-                <CardHeader className="pb-4 px-8 border-b border-slate-100">
-                  <CardTitle className="text-slate-900 text-xl">Recent Notifications</CardTitle>
-                </CardHeader>
-                <CardContent className="p-6">
-                  <div className="space-y-6">
-                    {[
-                      { msg: "New doctor application from Dr. James Smith", time: "2 mins ago", type: "system" },
-                      { msg: "System maintenance scheduled for Sat midnight", time: "1 hour ago", type: "warning" },
-                      { msg: "Monthly revenue goals achieved!", time: "5 hours ago", type: "success" },
-                      { msg: "New feedback received for Tele-consultation", time: "3 hours ago", type: "info" }
-                    ].map((note, i) => (
-                      <div key={i} className="flex gap-4">
-                        <div className="h-2 w-2 rounded-full bg-blue-500 mt-2 flex-shrink-0 animate-pulse" />
-                        <div>
-                          <p className="text-sm font-semibold text-slate-700 leading-snug">{note.msg}</p>
-                          <span className="text-[11px] font-bold text-slate-400 flex items-center gap-1 mt-1">
-                             <Activity className="h-3 w-3" /> {note.time}
+        <AnimatePresence mode="wait">
+          {activeTab === 'overview' && (
+            <motion.div
+              key="overview"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="space-y-10"
+            >
+              {/* Stats Grid */}
+              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+                {stats.map((stat, i) => (
+                  <motion.div
+                    key={stat.label}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.1 }}
+                  >
+                    <GlassCard className="flex items-center gap-4 border-none shadow-sm hover:shadow-md transition-shadow">
+                      <div className={cn("flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl", stat.bg, stat.color)}>
+                        {stat.icon}
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-slate-500">{stat.label}</p>
+                        <div className="flex items-center gap-2">
+                          <span className="text-2xl font-black text-slate-900 leading-none">{stat.value}</span>
+                          <span className={cn(
+                            "text-[10px] font-black px-1.5 py-0.5 rounded-lg border",
+                            stat.trend?.includes('+') ? "text-emerald-600 bg-emerald-50 border-emerald-100" : "text-slate-500 bg-slate-50 border-slate-100"
+                          )}>
+                            {stat.trend}
                           </span>
                         </div>
                       </div>
-                    ))}
-                  </div>
-                  <Button variant="ghost" className="w-full mt-8 text-blue-600 font-bold hover:bg-blue-50 border border-blue-100 rounded-xl">View All System Logs</Button>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-        )}
+                    </GlassCard>
+                  </motion.div>
+                ))}
+              </div>
 
-        {activeTab === 'users' && (
-          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <Card className="border-0 shadow-sm ring-1 ring-slate-200/60 overflow-hidden">
-               <CardHeader className="flex flex-row items-center justify-between border-b border-slate-100/100 pb-6 px-8 bg-white">
-                  <div>
-                    <CardTitle className="text-slate-900 text-xl">Patient Management</CardTitle>
-                    <p className="text-slate-400 text-sm font-medium mt-1">Found {patients.length} active registered users</p>
+              {/* Charts Section */}
+              <div className="grid gap-8 lg:grid-cols-3">
+                <GlassCard className="lg:col-span-2 p-0 overflow-hidden border-none shadow-sm">
+                  <div className="p-8 pb-0">
+                    <h3 className="text-xl font-bold text-slate-900">Platform Analytics</h3>
+                    <p className="text-sm text-slate-500">Revenue and appointment volume correlation</p>
                   </div>
-                  <div className="flex gap-2">
-                    <div className="relative">
-                       <input 
-                         type="text" 
-                         placeholder="Search users..." 
-                         className="bg-slate-50 border border-slate-200 text-sm rounded-xl px-4 py-2 w-64 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all placeholder:text-slate-400"
-                       />
-                    </div>
+                  <div className="h-[400px] w-full p-4">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart data={revenueData}>
+                        <defs>
+                          <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.2}/>
+                            <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} />
+                        <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} />
+                        <Tooltip contentStyle={{borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)'}} />
+                        <Area type="monotone" dataKey="revenue" stroke="#3b82f6" strokeWidth={4} fillOpacity={1} fill="url(#colorRev)" />
+                      </AreaChart>
+                    </ResponsiveContainer>
                   </div>
-                </CardHeader>
-              <CardContent className="p-0">
-                {loading ? (
-                    <div className="p-20 text-center flex flex-col items-center">
-                        <Activity className="h-10 w-10 text-blue-500 animate-spin mb-4" />
-                        <span className="text-slate-500 font-medium tracking-tight">Syncing user database...</span>
-                    </div>
-                ) : patients.length > 0 ? (
-                    <Table>
-                        <TableHeader>
-                            <TableRow className="bg-slate-50/50">
-                                <TableHead>User Profile</TableHead>
-                                <TableHead>Permissions</TableHead>
-                                <TableHead>Email Address</TableHead>
-                                <TableHead className="text-right">Actions</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {patients.map((p) => (
-                                <TableRow key={p.id}>
-                                    <TableCell>
-                                        <div className="flex items-center gap-3">
-                                            <div className="h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 font-bold border border-slate-200 shadow-sm">
-                                                {p.name?.[0] || 'U'}
-                                            </div>
-                                            <div className="flex flex-col">
-                                                <span className="font-bold text-slate-800">{p.name || 'Anonymous User'}</span>
-                                                <span className="text-[10px] uppercase tracking-wider text-slate-400 font-bold">UID: {p.id.slice(-8)}</span>
-                                            </div>
-                                        </div>
-                                    </TableCell>
-                                    <TableCell>
-                                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold ring-1 ring-inset ${
-                                            p.role?.includes('ADMIN') 
-                                                ? 'bg-purple-50 text-purple-700 ring-purple-600/20' 
-                                                : 'bg-blue-50 text-blue-700 ring-blue-600/20'
-                                        }`}>
-                                            {p.role}
-                                        </span>
-                                    </TableCell>
-                                    <TableCell className="font-medium text-slate-600">{p.email}</TableCell>
-                                    <TableCell className="text-right">
-                                        <div className="flex justify-end items-center gap-2">
-                                            {!(p.role?.includes('ADMIN')) && (
-                                                <Button 
-                                                    variant="outline" 
-                                                    size="sm" 
-                                                    className="h-9 w-9 p-0 rounded-lg border-slate-200 text-indigo-600 hover:bg-indigo-50"
-                                                    title="Promote to Admin"
-                                                    onClick={() => handlePromoteUser(p.id)}
-                                                >
-                                                    <ShieldCheck className="h-4 w-4" />
-                                                </Button>
-                                            )}
-                                            <Button 
-                                                variant="outline" 
-                                                size="sm" 
-                                                className="h-9 w-9 p-0 rounded-lg border-slate-200 text-rose-600 hover:bg-rose-50"
-                                                title="Delete User"
-                                                onClick={() => handleDeleteUser(p.id)}
-                                            >
-                                                <Trash2 className="h-4 w-4" />
-                                            </Button>
-                                            <Button variant="ghost" size="sm" className="h-9 w-9 p-0 rounded-lg text-slate-400">
-                                                 <MoreVertical className="h-4 w-4" />
-                                            </Button>
-                                        </div>
-                                    </TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                ) : (
-                    <div className="p-20 text-center flex flex-col items-center">
-                        <div className="h-16 w-16 bg-slate-50 rounded-full flex items-center justify-center mb-4 ring-1 ring-slate-100">
-                           <Users className="h-8 w-8 text-slate-300" />
+                </GlassCard>
+
+                <div className="space-y-6">
+                  <h3 className="text-lg font-bold text-slate-900 px-1">Infrastructure</h3>
+                  {[
+                    { label: 'API Gateway', status: 'Online', icon: <Globe className="text-blue-500" />, load: 42 },
+                    { label: 'Patient DB', status: 'Healthy', icon: <Database className="text-emerald-500" />, load: 28 },
+                    { label: 'Auth Cluster', status: 'Online', icon: <ShieldCheck className="text-indigo-500" />, load: 15 },
+                    { label: 'ML Engine', status: 'Standby', icon: <Cpu className="text-amber-500" />, load: 5 },
+                  ].map((service) => (
+                    <GlassCard key={service.label} className="p-4 border-none shadow-xs hover:shadow-md transition-all">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 rounded-lg bg-slate-50">{service.icon}</div>
+                          <span className="font-bold text-slate-900 text-sm">{service.label}</span>
                         </div>
-                        <h3 className="text-lg font-bold text-slate-900">No users found</h3>
-                        <p className="text-slate-500 max-w-xs mt-1">There are no registered patients in the system matching your current filter.</p>
-                        <Button className="mt-6 rounded-xl bg-slate-900 text-white" onClick={fetchPatients}>Refresh Database</Button>
-                    </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-        )}
+                        <span className="text-[10px] font-black uppercase text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-100">
+                          {service.status}
+                        </span>
+                      </div>
+                      <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                        <motion.div 
+                          initial={{ width: 0 }}
+                          animate={{ width: `${service.load}%` }}
+                          className="h-full bg-slate-900" 
+                        />
+                      </div>
+                    </GlassCard>
+                  ))}
+                </div>
+              </div>
+            </motion.div>
+          )}
 
-        {/* Placeholders for other tabs with similar premium styling */}
-        {(activeTab === 'doctors' || activeTab === 'appointments' || activeTab === 'payments') && (
-           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 text-center py-32 bg-white rounded-3xl border border-dashed border-slate-300 shadow-sm">
-              <div className="h-20 w-20 bg-blue-50 rounded-2xl flex items-center justify-center mx-auto mb-6 ring-8 ring-blue-50/50">
-                   {activeTab === 'doctors' ? <Stethoscope className="h-10 w-10 text-blue-600" /> : 
-                    activeTab === 'appointments' ? <Calendar className="h-10 w-10 text-blue-600" /> : 
-                    <CreditCard className="h-10 w-10 text-blue-600" />}
-              </div>
-              <h2 className="text-2xl font-black text-slate-900 mb-2">Integration Pending</h2>
-              <p className="text-slate-500 max-w-md mx-auto font-medium">
-                The <span className="text-blue-600 font-bold uppercase tracking-wider text-xs">{activeTab}</span> module is currently being synchronized with the backend services. 
-                Full administrative auditing will be available in the next release.
-              </p>
-              <div className="mt-8 flex gap-3 justify-center">
-                 <Button variant="outline" className="rounded-xl border-slate-200">System Status</Button>
-                 <Button className="rounded-xl bg-blue-600 shadow-lg shadow-blue-600/20 px-8">Enable Bridge</Button>
-              </div>
-           </div>
-        )}
+          {activeTab === 'users' && (
+            <motion.div
+              key="users"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+            >
+              <GlassCard className="p-0 overflow-hidden border-none shadow-sm">
+                <div className="p-8 border-b border-slate-50 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div>
+                    <h3 className="text-2xl font-black text-slate-900 leading-none">User Directory</h3>
+                    <p className="text-sm text-slate-500 mt-2 font-medium">Manage permissions and oversee all platform participants.</p>
+                  </div>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+                    <input 
+                      type="text" 
+                      placeholder="Search name or identity..." 
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="h-11 w-full md:w-80 rounded-2xl border border-slate-200 bg-slate-50 pl-11 pr-4 text-sm font-bold outline-none transition-all focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 placeholder:font-normal"
+                    />
+                  </div>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left">
+                    <thead>
+                      <tr className="bg-slate-50/50">
+                        <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">User Identity</th>
+                        <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Security Group</th>
+                        <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Communication</th>
+                        <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">Access Control</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-50">
+                      {loading ? (
+                        <tr>
+                          <td colSpan={4} className="py-20 text-center">
+                            <Activity className="h-10 w-10 text-primary-600 animate-spin mx-auto mb-4" />
+                            <p className="text-slate-500 font-bold uppercase tracking-widest text-xs">Synchronizing Core...</p>
+                          </td>
+                        </tr>
+                      ) : filteredPatients.length > 0 ? (
+                        filteredPatients.map((p, i) => (
+                          <motion.tr 
+                            key={p.id}
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ delay: i * 0.05 }}
+                            className="group hover:bg-slate-50/50 transition-colors"
+                          >
+                            <td className="px-8 py-5">
+                              <div className="flex items-center gap-4">
+                                <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center font-black text-slate-400 text-lg shadow-inner group-hover:from-primary-50 group-hover:to-primary-100 group-hover:text-primary-600 transition-all">
+                                  {p.name?.[0] || 'U'}
+                                </div>
+                                <div>
+                                  <div className="font-black text-slate-900 group-hover:text-primary-900 transition-colors">{p.name || 'Anonymous Entity'}</div>
+                                  <div className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">ID: {p.id.slice(-12)}</div>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-8 py-5">
+                              <span className={cn(
+                                "inline-flex items-center px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-widest border",
+                                p.role?.includes('ADMIN') 
+                                  ? "bg-rose-50 text-rose-600 border-rose-100 ring-4 ring-rose-500/5" 
+                                  : "bg-primary-50 text-primary-600 border-primary-100"
+                              )}>
+                                {p.role}
+                              </span>
+                            </td>
+                            <td className="px-8 py-5 font-bold text-sm text-slate-600 italic">{p.email}</td>
+                            <td className="px-8 py-5 text-right">
+                              <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                {!(p.role?.includes('ADMIN')) && (
+                                  <button 
+                                    onClick={() => handlePromoteUser(p.id)}
+                                    className="p-2.5 rounded-xl bg-slate-100 text-slate-500 hover:bg-primary-500 hover:text-white transition-all shadow-sm"
+                                    title="Elevate Permissions"
+                                  >
+                                    <ShieldCheck className="h-4 w-4" />
+                                  </button>
+                                )}
+                                <button 
+                                  onClick={() => handleDeleteUser(p.id)}
+                                  className="p-2.5 rounded-xl bg-slate-100 text-slate-500 hover:bg-rose-500 hover:text-white transition-all shadow-sm"
+                                  title="Terminate Access"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                                <button className="p-2.5 rounded-xl bg-slate-100 text-slate-500 hover:bg-slate-900 hover:text-white transition-all shadow-sm">
+                                  <MoreVertical className="h-4 w-4" />
+                                </button>
+                              </div>
+                            </td>
+                          </motion.tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan={4} className="py-20 text-center">
+                            <Users className="h-12 w-12 text-slate-200 mx-auto mb-4" />
+                            <p className="text-slate-500 italic">No entities found in this security layer.</p>
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </GlassCard>
+            </motion.div>
+          )}
+
+          {activeTab === 'status' && (
+            <motion.div
+              key="status"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="grid gap-8 md:grid-cols-2"
+            >
+              <GlassCard className="p-8 border-none shadow-sm">
+                <h3 className="text-xl font-bold mb-6 text-slate-900">Platform Deployment</h3>
+                <div className="space-y-6">
+                  {[
+                    { label: 'Edge Network', status: 'Accelerated', p: 98, color: 'bg-emerald-500' },
+                    { label: 'Content Mirror', status: 'Synced', p: 99, color: 'bg-blue-500' },
+                    { label: 'Backend Cluster', status: 'Load Balanced', p: 75, color: 'bg-indigo-500' },
+                  ].map((node) => (
+                    <div key={node.label}>
+                      <div className="flex justify-between mb-2">
+                        <span className="text-sm font-bold text-slate-700">{node.label}</span>
+                        <span className="text-xs font-black text-slate-400 uppercase">{node.status}</span>
+                      </div>
+                      <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
+                        <motion.div 
+                          initial={{ width: 0 }}
+                          animate={{ width: `${node.p}%` }}
+                          className={cn("h-full", node.color)} 
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </GlassCard>
+              
+              <GlassCard className="bg-slate-900 text-white border-none shadow-2xl">
+                <h3 className="text-xl font-bold mb-4">Integrity Audit</h3>
+                <p className="text-slate-400 text-sm mb-8 leading-relaxed">
+                  Platform infrastructure is operating within nominal parameters. Verified 128 micro-services across 4 regions.
+                </p>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
+                    <div className="text-[10px] font-black text-slate-500 uppercase mb-1">Latency</div>
+                    <div className="text-2xl font-black">24ms</div>
+                  </div>
+                  <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
+                    <div className="text-[10px] font-black text-slate-500 uppercase mb-1">Uptime</div>
+                    <div className="text-2xl font-black">100%</div>
+                  </div>
+                </div>
+                <AnimatedButton variant="glass" className="w-full mt-8 bg-white/10 text-white border-none hover:bg-white/20">
+                  Run Full Protocol
+                </AnimatedButton>
+              </GlassCard>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </main>
     </div>
   )
