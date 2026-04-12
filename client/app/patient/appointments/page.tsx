@@ -352,7 +352,7 @@ export default function PatientAppointments() {
               </div>
 
               <h2 className="text-4xl font-black text-slate-900 mb-4 tracking-tight leading-tight">Confirmed! Your path to better health begins.</h2>
-              <p className="text-slate-500 text-lg mb-12 font-medium italic">We've sent a calendar invitation and encrypted meeting details to your email <span className="text-primary-600 font-bold">{user?.email}</span>.</p>
+              <p className="text-slate-500 text-lg mb-12 font-medium italic">We&apos;ve sent a calendar invitation and encrypted meeting details to your email <span className="text-primary-600 font-bold">{user?.email}</span>.</p>
 
               <div className="flex flex-col gap-4">
                 <AnimatedButton size="xl" onClick={() => router.push('/patient/dashboard')}>

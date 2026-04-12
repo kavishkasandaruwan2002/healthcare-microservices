@@ -92,7 +92,7 @@ export default function PatientDashboard() {
             animate={{ opacity: 1, x: 0 }}
           >
             <h1 className="text-3xl font-bold tracking-tight text-slate-900">Welcome back, {user?.name || 'Guest'}!</h1>
-            <p className="text-slate-500">Here's a summary of your health and upcoming appointments.</p>
+            <p className="text-slate-500">Here&apos;s a summary of your health and upcoming appointments.</p>
           </motion.div>
           <motion.div 
             initial={{ opacity: 0, x: 20 }}
@@ -190,7 +190,7 @@ export default function PatientDashboard() {
               </div>
               <div className="space-y-4">
                 {appointments.length > 0 ? (
-                  appointments.map((apt: any, i) => (
+                  appointments.map((apt: { id: string; doctorName?: string; reason?: string; date?: string; time?: string }, i) => (
                     <motion.div
                       key={apt.id}
                       initial={{ opacity: 0, x: -20 }}

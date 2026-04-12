@@ -4,13 +4,8 @@ import React from "react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { 
-  ChevronDown, 
   ArrowRight, 
-  Stethoscope, 
-  Heart, 
-  Activity, 
-  ShieldCheck, 
-  Users 
+  Activity
 } from "lucide-react";
 
 interface NavigationItem {
@@ -30,7 +25,7 @@ interface PulseFitHeroProps {
   logo?: string;
   navigation?: NavigationItem[];
   isAuthenticated?: boolean;
-  user?: any;
+  user?: Record<string, any> | null;
   onLogout?: () => void;
   ctaButton?: {
     label: string;
@@ -57,18 +52,6 @@ interface PulseFitHeroProps {
 }
 
 export function PulseFitHero({
-  logo = "HealthPulse",
-  navigation = [
-    { label: "Find Doctors" },
-    { label: "Specialties", hasDropdown: true },
-    { label: "Telemedicine" },
-    { label: "Insurance" },
-    { label: "Contact" },
-  ],
-  isAuthenticated,
-  user,
-  onLogout,
-  ctaButton,
   title,
   subtitle,
   primaryAction,
@@ -97,78 +80,7 @@ export function PulseFitHero({
         <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-purple-400/30 blur-[120px]" />
       </div>
 
-      {/* Header */}
-      <motion.header
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
-        className="relative z-20 flex flex-row justify-between items-center px-8 lg:px-16"
-        style={{
-          paddingTop: "32px",
-          paddingBottom: "32px",
-        }}
-      >
-        {/* Logo */}
-        <div className="flex items-center gap-2 text-2xl font-black tracking-tight text-slate-900 font-sans">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-600 text-white shadow-lg shadow-primary-500/30">
-            <Heart className="h-6 w-6 fill-current" />
-          </div>
-          {logo}
-        </div>
-
-        {/* Navigation */}
-        <nav className="hidden lg:flex flex-row items-center gap-8" aria-label="Main navigation">
-          {navigation.map((item, index) => (
-            <button
-              key={index}
-              onClick={item.onClick}
-              className="flex flex-row items-center gap-1.5 text-sm font-bold text-slate-600 hover:text-primary-600 transition-all uppercase tracking-widest"
-            >
-              {item.label}
-              {item.hasDropdown && (
-                <ChevronDown className="h-4 w-4" />
-              )}
-            </button>
-          ))}
-        </nav>
-
-        {/* CTA Button */}
-        <div className="flex items-center gap-4">
-          {isAuthenticated ? (
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => {
-                  const dashboardUrl = user?.role?.includes('PATIENT') || user?.role === 'PATIENT' ? '/patient/dashboard' : '/doctor/dashboard';
-                  window.location.href = dashboardUrl;
-                }}
-                className="px-6 py-2.5 rounded-xl bg-white/10 border border-white/20 text-xs font-black text-slate-900 backdrop-blur-md hover:bg-white/20 transition-all uppercase tracking-widest"
-              >
-                Dashboard
-              </button>
-              <button
-                onClick={onLogout}
-                className="px-6 py-2.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-xs font-black text-rose-600 hover:bg-rose-500/20 transition-all uppercase tracking-widest"
-              >
-                Sign Out
-              </button>
-            </div>
-          ) : ctaButton ? (
-            <button
-              onClick={ctaButton.onClick}
-              className="px-8 py-3.5 rounded-2xl bg-white border border-slate-200 text-sm font-black text-slate-900 shadow-xl shadow-slate-200/50 hover:bg-slate-50 transition-all active:scale-95 uppercase tracking-widest"
-            >
-              {ctaButton.label}
-            </button>
-          ) : (
-             <button
-              onClick={() => window.location.href = '/login'}
-              className="px-8 py-3.5 rounded-2xl bg-primary-600 text-sm font-black text-white shadow-xl shadow-primary-500/20 hover:bg-primary-700 transition-all active:scale-95 uppercase tracking-widest"
-            >
-              Patient Portal
-            </button>
-          )}
-        </div>
-      </motion.header>
+      {/* Header removed - handled by Global Navbar */}
 
       {/* Main Content */}
       {children ? (

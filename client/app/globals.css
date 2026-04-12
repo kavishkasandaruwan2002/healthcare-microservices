@@ -49,7 +49,7 @@
   }
   
   * {
-    @apply border-slate-200;
+    @apply border-slate-200 scroll-mt-24;
   }
 }
 
