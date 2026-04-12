@@ -45,10 +45,10 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xs
       <artifactId>springdoc-openapi-ui</artifactId>
       <version>1.6.12</version>
     </dependency>
+    <!-- Thymeleaf for HTML email templates -->
     <dependency>
-      <groupId>com.twilio.sdk</groupId>
-      <artifactId>twilio</artifactId>
-      <version>9.0.0</version>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-thymeleaf</artifactId>
     </dependency>
   </dependencies>
   <dependencyManagement>

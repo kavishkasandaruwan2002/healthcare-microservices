@@ -182,10 +182,21 @@ services:
     environment:
       - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE:-docker}
       - EUREKA_SERVER=${EUREKA_SERVER:-http://eureka:8761/eureka/}
+      - SPRING_DATA_MONGODB_URI=mongodb://mongo:27017/notification_db
+      - SPRING_MAIL_HOST=smtp.gmail.com
+      - SPRING_MAIL_PORT=587
+      - SPRING_MAIL_USERNAME=${MAIL_USERNAME:-peirisayodya369@gmail.com}
+      - SPRING_MAIL_PASSWORD=${MAIL_PASSWORD:-jqynxfxydnfegknj}
+      - SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH=true
+      - SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE=true
+      - NOTIFICATION_MAIL_FROM=${MAIL_USERNAME:-peirisayodya369@gmail.com}
+      - NOTIFICATION_MAIL_FROM_NAME=${MAIL_FROM_NAME:-HealthCare Platform}
     depends_on:
       eureka:
         condition: service_healthy
       rabbitmq:
+        condition: service_healthy
+      mongo:
         condition: service_healthy
     networks:
       - healthcare-network

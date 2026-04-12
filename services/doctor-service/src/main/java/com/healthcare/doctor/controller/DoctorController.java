@@ -80,9 +80,12 @@ public class DoctorController {
     }
 
     @PatchMapping("/{id}/status")
-    public ResponseEntity<String> updateDoctorStatus(@PathVariable String id, @RequestParam String status) {
+    public ResponseEntity<String> updateDoctorStatus(
+            @PathVariable String id,
+            @RequestParam String status,
+            @RequestParam(required = false) String rejectionReason) {
         log.info("Updating doctor status: {} to {}", id, status);
-        doctorService.updateDoctorStatus(id, status);
+        doctorService.updateDoctorStatus(id, status, rejectionReason);
         return ResponseEntity.ok("Doctor status updated successfully");
     }
 }

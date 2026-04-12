@@ -109,6 +109,9 @@ export default function AdminDashboard() {
   const [approveLoading, setApproveLoading] = useState<string | null>(null)
   const [deleteLoading, setDeleteLoading] = useState<string | null>(null)
 
+  // Rejection modal state
+  const [rejectionModal, setRejectionModal] = useState<{ doctor: Doctor; reason: string } | null>(null)
+
   // Check authorization and set mounted flag
   useEffect(() => {
     setMounted(true)
@@ -276,31 +279,40 @@ export default function AdminDashboard() {
     }
   }
 
-  // Handle reject doctor - with Bearer token and proper format
-  const handleRejectDoctor = async (doctor: Doctor) => {
+  // Open rejection reason modal
+  const handleRejectDoctor = (doctor: Doctor) => {
     const doctorId = getId(doctor)
-    
     if (!doctorId) {
-      console.error('Doctor object:', doctor)
-      toast.error('Invalid doctor ID - check console for details')
+      toast.error('Invalid doctor ID')
       return
     }
-    
+    setRejectionModal({ doctor, reason: '' })
+  }
+
+  // Submit rejection with reason
+  const submitRejection = async () => {
+    if (!rejectionModal) return
+    const { doctor, reason } = rejectionModal
+    const doctorId = getId(doctor)
+
     try {
       setApproveLoading(doctorId)
-      
       await api.patch(
         `/doctors/${doctorId}/status`,
         doctor,
         {
-          params: { status: 'REJECTED' },
+          params: {
+            status: 'REJECTED',
+            rejectionReason: reason.trim() || 'Your application did not meet our current requirements.'
+          },
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
           }
         }
       )
-      toast.success('Doctor rejected successfully')
+      toast.success('Doctor rejected – notification email sent')
+      setRejectionModal(null)
       await fetchPendingDoctors()
     } catch (error: any) {
       console.error('Failed to reject doctor:', error)
@@ -727,6 +739,65 @@ export default function AdminDashboard() {
           </div>
         )}
       </main>
+
+      {/* Rejection Reason Modal */}
+      {rejectionModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
+            {/* Modal Header */}
+            <div className="bg-gradient-to-r from-red-600 to-rose-600 px-6 py-5">
+              <h3 className="text-white font-bold text-lg">Reject Doctor Application</h3>
+              <p className="text-red-100 text-sm mt-1">Provide a reason — it will be included in the notification email.</p>
+            </div>
+
+            {/* Doctor info */}
+            <div className="px-6 py-4 bg-slate-50 border-b border-slate-200">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-full bg-red-100 flex items-center justify-center text-red-700 font-bold text-sm">
+                  {rejectionModal.doctor.name?.[0] || 'D'}
+                </div>
+                <div>
+                  <p className="font-semibold text-slate-900">{rejectionModal.doctor.name}</p>
+                  <p className="text-sm text-slate-500">{rejectionModal.doctor.specialization}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Reason Input */}
+            <div className="px-6 py-5">
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
+                Rejection Reason
+              </label>
+              <textarea
+                value={rejectionModal.reason}
+                onChange={(e) => setRejectionModal({ ...rejectionModal, reason: e.target.value })}
+                placeholder="e.g. Insufficient documentation, invalid license number, incomplete profile..."
+                rows={4}
+                className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-700 focus:ring-2 focus:ring-red-500/20 focus:border-red-400 resize-none transition-all"
+              />
+              <p className="text-xs text-slate-400 mt-2">Leave blank to use the default message.</p>
+            </div>
+
+            {/* Actions */}
+            <div className="px-6 pb-6 flex gap-3 justify-end">
+              <button
+                onClick={() => setRejectionModal(null)}
+                className="px-5 py-2.5 rounded-xl text-sm font-semibold text-slate-600 border border-slate-200 hover:bg-slate-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={submitRejection}
+                disabled={approveLoading === getId(rejectionModal.doctor)}
+                className="px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 shadow-lg shadow-red-600/25 transition-all disabled:opacity-60 flex items-center gap-2"
+              >
+                <XCircle className="h-4 w-4" />
+                {approveLoading === getId(rejectionModal.doctor) ? 'Rejecting...' : 'Reject & Notify'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

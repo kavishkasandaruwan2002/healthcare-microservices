@@ -1,5 +1,6 @@
 package com.healthcare.doctor.service;
 
+import com.healthcare.doctor.client.NotificationClient;
 import com.healthcare.doctor.dto.DoctorAuthResponse;
 import com.healthcare.doctor.dto.DoctorDTO;
 import com.healthcare.doctor.dto.DoctorRegisterRequest;
@@ -28,6 +29,7 @@ public class DoctorService {
     private final PasswordEncoder passwordEncoder;
     private final DoctorJwtService jwtService;
     private final AuthenticationManager authenticationManager;
+    private final NotificationClient notificationClient;
 
     public DoctorAuthResponse register(DoctorRegisterRequest request) {
         if (doctorRepository.existsByEmail(request.getEmail())) {
@@ -55,6 +57,19 @@ public class DoctorService {
 
         Doctor savedDoctor = doctorRepository.save(doctor);
         log.info("Doctor registered successfully: {}", savedDoctor.getEmail());
+
+        // Send registration confirmation email
+        try {
+            notificationClient.sendDoctorRegistrationEmail(
+                    savedDoctor.getEmail(),
+                    savedDoctor.getId(),
+                    savedDoctor.getName(),
+                    savedDoctor.getSpecialization() != null ? savedDoctor.getSpecialization() : ""
+            );
+            log.info("Registration email sent to: {}", savedDoctor.getEmail());
+        } catch (Exception ex) {
+            log.warn("Failed to send registration email to: {} – {}", savedDoctor.getEmail(), ex.getMessage());
+        }
 
         User userDetails = new User(
                 savedDoctor.getEmail(),
@@ -153,6 +168,10 @@ public class DoctorService {
     }
 
     public void updateDoctorStatus(String id, String status) {
+        updateDoctorStatus(id, status, null);
+    }
+
+    public void updateDoctorStatus(String id, String status, String rejectionReason) {
         Doctor doctor = getDoctorById(id);
         doctor.setStatus(status);
         if ("APPROVED".equals(status)) {
@@ -161,6 +180,24 @@ public class DoctorService {
         doctor.setUpdatedAt(System.currentTimeMillis());
         doctorRepository.save(doctor);
         log.info("Doctor status updated: {} -> {}", id, status);
+
+        // Send status-change email notification
+        try {
+            String specialization = doctor.getSpecialization() != null ? doctor.getSpecialization() : "";
+            if ("APPROVED".equals(status)) {
+                notificationClient.sendDoctorApprovedEmail(
+                        doctor.getEmail(), doctor.getId(), doctor.getName(), specialization);
+                log.info("Approval email sent to: {}", doctor.getEmail());
+            } else if ("REJECTED".equals(status)) {
+                String reason = rejectionReason != null ? rejectionReason
+                        : "Your application did not meet our current requirements.";
+                notificationClient.sendDoctorRejectedEmail(
+                        doctor.getEmail(), doctor.getId(), doctor.getName(), reason);
+                log.info("Rejection email sent to: {}", doctor.getEmail());
+            }
+        } catch (Exception ex) {
+            log.warn("Failed to send status email to: {} – {}", doctor.getEmail(), ex.getMessage());
+        }
     }
 
     public List<DoctorDTO> getPendingDoctors() {

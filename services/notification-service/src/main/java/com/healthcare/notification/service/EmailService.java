@@ -5,13 +5,16 @@ import com.healthcare.notification.model.Notification;
 import com.healthcare.notification.repository.NotificationRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.mail.SimpleMailMessage;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
+import org.thymeleaf.TemplateEngine;
+import org.thymeleaf.context.Context;
 
-import javax.mail.MessagingException;
 import javax.mail.internet.MimeMessage;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 
 @Service
 @RequiredArgsConstructor
@@ -20,52 +23,236 @@ public class EmailService {
 
     private final JavaMailSender mailSender;
     private final NotificationRepository notificationRepository;
+    private final TemplateEngine templateEngine;
 
-    public void sendSimpleEmail(EmailNotificationRequest request) {
-        try {
-            SimpleMailMessage message = new SimpleMailMessage();
-            message.setTo(request.getTo());
-            message.setSubject(request.getSubject());
-            message.setText(request.getBody());
-            message.setFrom("peirisayodya369@gmail.com");
+    @Value("${notification.mail.from:peirisayodya369@gmail.com}")
+    private String fromEmail;
 
-            mailSender.send(message);
+    @Value("${notification.mail.from-name:HealthCare Platform}")
+    private String fromName;
 
-            // Save notification to database
-            Notification notification = Notification.builder()
-                    .recipientId(request.getRecipientId())
-                    .recipientEmail(request.getTo())
-                    .notificationType("EMAIL")
-                    .title(request.getSubject())
-                    .message(request.getBody())
-                    .subject(request.getSubject())
-                    .status("SENT")
-                    .isRead(false)
-                    .createdAt(System.currentTimeMillis())
-                    .sentAt(System.currentTimeMillis())
-                    .build();
-
-            notificationRepository.save(notification);
-            log.info("Email sent successfully to: {}", request.getTo());
-        } catch (Exception e) {
-            log.error("Failed to send email to: {}", request.getTo(), e);
-            saveFailedNotification(request, e.getMessage());
-        }
-    }
+    // ─────────────────────────────────────────────────────────────────────────
+    // Core send method – NEVER propagates exceptions outside this method
+    // ─────────────────────────────────────────────────────────────────────────
 
     public void sendHtmlEmail(EmailNotificationRequest request, String htmlContent) {
+        boolean sent = false;
+        String failureReason = null;
+
         try {
             MimeMessage message = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, true);
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
             helper.setTo(request.getTo());
             helper.setSubject(request.getSubject());
             helper.setText(htmlContent, true);
-            helper.setFrom("peirisayodya369@gmail.com");
+            helper.setFrom(fromEmail, fromName);
 
             mailSender.send(message);
+            sent = true;
+            log.info("HTML Email sent successfully to: {}", request.getTo());
 
-            // Save notification to database
+        } catch (Exception e) {
+            failureReason = e.getMessage();
+            log.error("Failed to send HTML email to: {} – {}", request.getTo(), e.getMessage());
+        }
+
+        // Always try to persist the notification record, but never let DB failures propagate
+        persistNotification(request, sent ? "SENT" : "FAILED", failureReason);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Generic simple email
+    // ─────────────────────────────────────────────────────────────────────────
+
+    public void sendSimpleEmail(EmailNotificationRequest request) {
+        String html = "<html><body><p>" + request.getBody() + "</p></body></html>";
+        sendHtmlEmail(request, html);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Doctor lifecycle events
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Sent when a new doctor completes registration.
+     */
+    public void sendDoctorRegistrationEmail(String recipientEmail, String recipientId,
+                                            String doctorName, String specialization) {
+        String html = renderTemplate("email/doctor-registration",
+                ctx -> {
+                    ctx.setVariable("doctorName", doctorName);
+                    ctx.setVariable("specialization", specialization != null ? specialization : "");
+                    ctx.setVariable("email", recipientEmail);
+                });
+
+        EmailNotificationRequest request = EmailNotificationRequest.builder()
+                .to(recipientEmail)
+                .recipientId(recipientId)
+                .subject("Registration Received – Your Profile is Under Review")
+                .body("Dear " + doctorName + ", your registration has been received and is pending admin review.")
+                .notificationType("EMAIL")
+                .build();
+
+        sendHtmlEmail(request, html);
+    }
+
+    /**
+     * Sent when an admin approves a doctor's account.
+     */
+    public void sendDoctorApprovalEmail(String recipientEmail, String recipientId,
+                                        String doctorName, String specialization) {
+        String html = renderTemplate("email/doctor-approved",
+                ctx -> {
+                    ctx.setVariable("doctorName", doctorName);
+                    ctx.setVariable("specialization", specialization != null ? specialization : "");
+                    ctx.setVariable("email", recipientEmail);
+                });
+
+        EmailNotificationRequest request = EmailNotificationRequest.builder()
+                .to(recipientEmail)
+                .recipientId(recipientId)
+                .subject("Congratulations! Your Account Has Been Approved")
+                .body("Dear " + doctorName + ", your doctor account has been approved.")
+                .notificationType("EMAIL")
+                .build();
+
+        sendHtmlEmail(request, html);
+    }
+
+    /**
+     * Sent when an admin rejects a doctor's registration.
+     */
+    public void sendDoctorRejectionEmail(String recipientEmail, String recipientId,
+                                         String doctorName, String rejectionReason) {
+        String effectiveReason = (rejectionReason != null && !rejectionReason.isBlank())
+                ? rejectionReason
+                : "Your application did not meet our current requirements.";
+
+        String html = renderTemplate("email/doctor-rejected",
+                ctx -> {
+                    ctx.setVariable("doctorName", doctorName);
+                    ctx.setVariable("email", recipientEmail);
+                    ctx.setVariable("rejectionReason", effectiveReason);
+                });
+
+        EmailNotificationRequest request = EmailNotificationRequest.builder()
+                .to(recipientEmail)
+                .recipientId(recipientId)
+                .subject("Application Update – HealthCare Platform")
+                .body("Dear " + doctorName + ", we regret to inform you that your registration was not approved.")
+                .notificationType("EMAIL")
+                .build();
+
+        sendHtmlEmail(request, html);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Appointment events
+    // ─────────────────────────────────────────────────────────────────────────
+
+    public void sendAppointmentConfirmationEmail(String recipientEmail, String recipientId,
+                                                 String doctorName, String appointmentDate,
+                                                 String appointmentTime) {
+        String html = renderTemplate("email/appointment-confirmation",
+                ctx -> {
+                    ctx.setVariable("doctorName", doctorName);
+                    ctx.setVariable("appointmentDate", appointmentDate);
+                    ctx.setVariable("appointmentTime", appointmentTime);
+                    ctx.setVariable("specialization", "");
+                });
+
+        EmailNotificationRequest request = EmailNotificationRequest.builder()
+                .to(recipientEmail)
+                .recipientId(recipientId)
+                .subject("Appointment Confirmed – " + doctorName + " on " + appointmentDate)
+                .body("Your appointment with " + doctorName + " is confirmed for "
+                        + appointmentDate + " at " + appointmentTime)
+                .notificationType("EMAIL")
+                .build();
+
+        sendHtmlEmail(request, html);
+    }
+
+    // Overload for backward compatibility with existing controller callers
+    public void sendCancellationEmail(String recipientEmail, String recipientId, String reason) {
+        sendCancellationEmail(recipientEmail, recipientId, "", "", "", reason);
+    }
+
+    public void sendCancellationEmail(String recipientEmail, String recipientId,
+                                      String doctorName, String appointmentDate,
+                                      String appointmentTime, String reason) {
+        String html = renderTemplate("email/appointment-cancellation",
+                ctx -> {
+                    ctx.setVariable("doctorName", doctorName);
+                    ctx.setVariable("appointmentDate", appointmentDate);
+                    ctx.setVariable("appointmentTime", appointmentTime);
+                    ctx.setVariable("reason", reason);
+                });
+
+        EmailNotificationRequest request = EmailNotificationRequest.builder()
+                .to(recipientEmail)
+                .recipientId(recipientId)
+                .subject("Appointment Cancelled – HealthCare Platform")
+                .body("Your appointment has been cancelled. Reason: " + reason)
+                .notificationType("EMAIL")
+                .build();
+
+        sendHtmlEmail(request, html);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Payment events
+    // ─────────────────────────────────────────────────────────────────────────
+
+    public void sendPaymentConfirmationEmail(String recipientEmail, String recipientId,
+                                             String transactionId, Double amount) {
+        String html = renderTemplate("email/payment-confirmation",
+                ctx -> {
+                    ctx.setVariable("transactionId", transactionId);
+                    ctx.setVariable("amount", String.format("%.2f", amount));
+                    ctx.setVariable("paymentDate",
+                            LocalDate.now().format(DateTimeFormatter.ofPattern("MMMM dd, yyyy")));
+                    ctx.setVariable("paymentMethod", "Online Payment");
+                });
+
+        EmailNotificationRequest request = EmailNotificationRequest.builder()
+                .to(recipientEmail)
+                .recipientId(recipientId)
+                .subject("Payment Confirmed – Rs. " + String.format("%.2f", amount))
+                .body("Payment of Rs. " + amount + " confirmed. Transaction ID: " + transactionId)
+                .notificationType("EMAIL")
+                .build();
+
+        sendHtmlEmail(request, html);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Private helpers
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Renders a Thymeleaf template. Falls back to a plain HTML error notice if the template
+     * cannot be found (e.g. during local development before full build), so emails are never
+     * blocked by a missing template.
+     */
+    private String renderTemplate(String templateName, java.util.function.Consumer<Context> contextSetup) {
+        try {
+            Context ctx = new Context();
+            contextSetup.accept(ctx);
+            return templateEngine.process(templateName, ctx);
+        } catch (Exception e) {
+            log.warn("Failed to render template '{}': {}. Falling back to plain HTML.", templateName, e.getMessage());
+            return "<html><body><p>This is a notification from HealthCare Platform.</p></body></html>";
+        }
+    }
+
+    /**
+     * Saves a notification record to MongoDB. Errors are swallowed so DB issues
+     * never cause an HTTP 500 for the caller.
+     */
+    private void persistNotification(EmailNotificationRequest request, String status, String failureReason) {
+        try {
             Notification notification = Notification.builder()
                     .recipientId(request.getRecipientId())
                     .recipientEmail(request.getTo())
@@ -73,105 +260,18 @@ public class EmailService {
                     .title(request.getSubject())
                     .message(request.getBody())
                     .subject(request.getSubject())
-                    .status("SENT")
+                    .status(status)
                     .isRead(false)
+                    .failureReason(failureReason)
                     .createdAt(System.currentTimeMillis())
-                    .sentAt(System.currentTimeMillis())
+                    .sentAt("SENT".equals(status) ? System.currentTimeMillis() : null)
                     .build();
 
             notificationRepository.save(notification);
-            log.info("HTML Email sent successfully to: {}", request.getTo());
-        } catch (MessagingException e) {
-            log.error("Failed to send HTML email to: {}", request.getTo(), e);
-            saveFailedNotification(request, e.getMessage());
+            log.debug("Notification record saved: {} [{}]", request.getTo(), status);
+        } catch (Exception e) {
+            // DB failure must NEVER propagate – log and continue
+            log.warn("Failed to persist notification record for {} – {}", request.getTo(), e.getMessage());
         }
-    }
-
-    public void sendAppointmentConfirmationEmail(String recipientEmail, String recipientId,
-            String doctorName, String appointmentDate,
-            String appointmentTime) {
-        String htmlContent = "<html><body>" +
-                "<h2>Appointment Confirmation</h2>" +
-                "<p>Dear Patient,</p>" +
-                "<p>Your appointment has been successfully booked!</p>" +
-                "<p><strong>Doctor:</strong> " + doctorName + "</p>" +
-                "<p><strong>Date:</strong> " + appointmentDate + "</p>" +
-                "<p><strong>Time:</strong> " + appointmentTime + "</p>" +
-                "<p>Please arrive 10 minutes early. If you need to reschedule, please contact us as soon as possible.</p>"
-                +
-                "<p>Best regards,<br/>Healthcare Platform Team</p>" +
-                "</body></html>";
-
-        EmailNotificationRequest request = EmailNotificationRequest.builder()
-                .to(recipientEmail)
-                .recipientId(recipientId)
-                .subject("Appointment Confirmation")
-                .body("Your appointment with " + doctorName + " has been confirmed for " + appointmentDate + " at "
-                        + appointmentTime)
-                .notificationType("EMAIL")
-                .build();
-
-        sendHtmlEmail(request, htmlContent);
-    }
-
-    public void sendCancellationEmail(String recipientEmail, String recipientId, String reason) {
-        String htmlContent = "<html><body>" +
-                "<h2>Appointment Cancellation</h2>" +
-                "<p>Dear Patient,</p>" +
-                "<p>Your appointment has been cancelled.</p>" +
-                "<p><strong>Reason:</strong> " + reason + "</p>" +
-                "<p>Please book another appointment at your convenience.</p>" +
-                "<p>Best regards,<br/>Healthcare Platform Team</p>" +
-                "</body></html>";
-
-        EmailNotificationRequest request = EmailNotificationRequest.builder()
-                .to(recipientEmail)
-                .recipientId(recipientId)
-                .subject("Appointment Cancellation")
-                .body("Your appointment has been cancelled. Reason: " + reason)
-                .notificationType("EMAIL")
-                .build();
-
-        sendHtmlEmail(request, htmlContent);
-    }
-
-    public void sendPaymentConfirmationEmail(String recipientEmail, String recipientId,
-            String transactionId, Double amount) {
-        String htmlContent = "<html><body>" +
-                "<h2>Payment Confirmation</h2>" +
-                "<p>Dear Patient,</p>" +
-                "<p>Your payment has been successfully processed.</p>" +
-                "<p><strong>Transaction ID:</strong> " + transactionId + "</p>" +
-                "<p><strong>Amount:</strong> Rs. " + amount + "</p>" +
-                "<p>An receipt has been attached to this email.</p>" +
-                "<p>Best regards,<br/>Healthcare Platform Team</p>" +
-                "</body></html>";
-
-        EmailNotificationRequest request = EmailNotificationRequest.builder()
-                .to(recipientEmail)
-                .recipientId(recipientId)
-                .subject("Payment Confirmation")
-                .body("Payment of Rs. " + amount + " has been confirmed. Transaction ID: " + transactionId)
-                .notificationType("EMAIL")
-                .build();
-
-        sendHtmlEmail(request, htmlContent);
-    }
-
-    private void saveFailedNotification(EmailNotificationRequest request, String failureReason) {
-        Notification notification = Notification.builder()
-                .recipientId(request.getRecipientId())
-                .recipientEmail(request.getTo())
-                .notificationType("EMAIL")
-                .title(request.getSubject())
-                .message(request.getBody())
-                .subject(request.getSubject())
-                .status("FAILED")
-                .isRead(false)
-                .failureReason(failureReason)
-                .createdAt(System.currentTimeMillis())
-                .build();
-
-        notificationRepository.save(notification);
     }
 }
