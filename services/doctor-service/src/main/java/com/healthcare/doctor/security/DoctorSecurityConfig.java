@@ -37,7 +37,7 @@ public class DoctorSecurityConfig {
     @Bean
     public UserDetailsService userDetailsService() {
         return username -> {
-            var doctor = doctorRepository.findByEmail(username)
+            com.healthcare.doctor.model.Doctor doctor = doctorRepository.findByEmail(username)
                     .orElseThrow(() -> new UsernameNotFoundException("Doctor not found"));
             return User.builder()
                     .username(doctor.getEmail())

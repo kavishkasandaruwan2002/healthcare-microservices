@@ -44,7 +44,7 @@ interface Patient {
 }
 
 interface Doctor {
-  _id?: string
+  _id?: string | { $oid: string }
   id?: string
   name: string
   email: string
@@ -63,9 +63,14 @@ interface DashboardStats {
   totalRevenue: number
 }
 
-// Helper to get ID from object (handles both _id and id)
+// Helper to get ID from object (handles both _id and id, and MongoDB extended JSON { $oid: '...' })
 const getId = (obj: any): string => {
-  return obj?._id || obj?.id || ''
+  const raw = obj?._id || obj?.id || ''
+  // Handle MongoDB extended JSON format where _id is { $oid: '...' }
+  if (raw && typeof raw === 'object' && raw.$oid) {
+    return raw.$oid
+  }
+  return typeof raw === 'string' ? raw : String(raw)
 }
 
 const mockAppointments = [
