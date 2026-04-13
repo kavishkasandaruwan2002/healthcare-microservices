@@ -8,15 +8,15 @@ import api from '@/services/api'
 import { Sidebar } from '@/components/ui/Sidebar'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { AnimatedButton } from '@/components/ui/AnimatedButton'
-import { 
-  Calendar, 
-  Clock, 
-  Activity, 
-  Video, 
-  Search, 
-  Plus, 
-  Bell, 
-  MessageSquare, 
+import {
+  Calendar,
+  Clock,
+  Activity,
+  Video,
+  Search,
+  Plus,
+  Bell,
+  MessageSquare,
   ArrowRight,
   TrendingUp,
   HeartPulse,
@@ -26,14 +26,14 @@ import {
   FileText
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { 
-  AreaChart, 
-  Area, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  ResponsiveContainer 
+import {
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer
 } from 'recharts'
 
 const chartData = [
@@ -83,7 +83,7 @@ export default function PatientDashboard() {
   return (
     <div className="flex min-h-screen bg-slate-50">
       <Sidebar role="PATIENT" />
-      
+
       <main className="flex-1 lg:ml-[80px] xl:ml-[280px] p-4 md:p-8 pt-20 lg:pt-8 transition-all duration-300">
         {/* Header */}
         <header className="mb-10 flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
@@ -94,7 +94,7 @@ export default function PatientDashboard() {
             <h1 className="text-3xl font-bold tracking-tight text-slate-900">Welcome back, {user?.name || 'Guest'}!</h1>
             <p className="text-slate-500">Here&apos;s a summary of your health and upcoming appointments.</p>
           </motion.div>
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             className="flex items-center gap-3"
@@ -156,15 +156,15 @@ export default function PatientDashboard() {
                     <AreaChart data={chartData}>
                       <defs>
                         <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.2}/>
-                          <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                          <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.2} />
+                          <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
                         </linearGradient>
                       </defs>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                      <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} />
-                      <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} />
-                      <Tooltip 
-                        contentStyle={{borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)'}}
+                      <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} />
+                      <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} />
+                      <Tooltip
+                        contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
                       />
                       <Area type="monotone" dataKey="value" stroke="#3b82f6" strokeWidth={4} fillOpacity={1} fill="url(#colorValue)" />
                     </AreaChart>
@@ -181,7 +181,7 @@ export default function PatientDashboard() {
             >
               <div className="mb-6 flex items-center justify-between">
                 <h3 className="text-xl font-bold text-slate-900">Upcoming Appointments</h3>
-                <button 
+                <button
                   onClick={() => router.push('/patient/appointments')}
                   className="text-sm font-bold text-primary-600 hover:text-primary-700 flex items-center gap-1 group"
                 >
@@ -267,25 +267,45 @@ export default function PatientDashboard() {
 
             {/* Quick Actions */}
             <div className="space-y-4">
-              <h3 className="text-lg font-bold text-slate-900 px-1">Actions</h3>
-              <div className="grid gap-3">
+              <h3 className="text-2xl font-extrabold text-[#0f172a] px-1 tracking-tight">Actions</h3>
+              <div className="grid gap-4">
                 {[
-                  { label: 'Upload Record', icon: <Plus className="h-5 w-5" />, bg: 'bg-primary-50 text-primary-600' },
-                  { label: 'Pharmacy Near Me', icon: <Search className="h-5 w-5" />, bg: 'bg-amber-50 text-amber-600' },
-                  { label: 'Prescriptions', icon: <FileText className="h-5 w-5" />, bg: 'bg-rose-50 text-rose-600' },
+                  { 
+                    label: 'Upload Record', 
+                    icon: <Plus className="h-6 w-6" />, 
+                    bg: 'bg-[#eff6ff] text-[#2563eb]',
+                    arrowColor: 'text-slate-200',
+                    path: '/patient/records/upload'
+                  },
+                  { 
+                    label: 'Pharmacy Near Me', 
+                    icon: <Search className="h-6 w-6" />, 
+                    bg: 'bg-[#fffbeb] text-[#d97706]',
+                    arrowColor: 'text-[#2563eb]',
+                    path: '/patient/pharmacy'
+                  },
+                  { 
+                    label: 'Prescriptions', 
+                    icon: <FileText className="h-6 w-6" />, 
+                    bg: 'bg-[#fff1f2] text-[#e11d48]',
+                    arrowColor: 'text-slate-200',
+                    path: '/patient/prescriptions'
+                  },
                 ].map((action, i) => (
                   <motion.button
                     key={action.label}
-                    whileHover={{ x: 5, scale: 1.02 }}
-                    className="flex w-full items-center justify-between rounded-2xl border border-slate-100 bg-white p-4 font-bold text-slate-700 shadow-xs transition-all hover:border-primary-100 hover:shadow-md hover:bg-white active:scale-95 group"
+                    whileHover={{ y: -2, scale: 1.01 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => router.push(action.path)}
+                    className="flex w-full items-center justify-between rounded-[2rem] border border-slate-50 bg-white p-6 font-bold text-[#1e293b] shadow-sm transition-all hover:border-blue-100 hover:shadow-xl hover:shadow-blue-500/5 active:scale-95 group"
                   >
-                    <span className="flex items-center gap-4">
-                      <div className={cn("flex h-10 w-10 items-center justify-center rounded-xl", action.bg)}>
+                    <span className="flex items-center gap-5">
+                      <div className={cn("flex h-14 w-14 items-center justify-center rounded-2xl shadow-inner", action.bg)}>
                         {action.icon}
                       </div>
-                      {action.label}
+                      <span className="text-xl font-bold tracking-tight">{action.label}</span>
                     </span>
-                    <ArrowRight className="h-4 w-4 text-slate-300 group-hover:text-primary-500 transition-colors" />
+                    <ArrowRight className={cn("h-5 w-5 transition-transform group-hover:translate-x-1", action.arrowColor)} />
                   </motion.button>
                 ))}
               </div>
