@@ -312,11 +312,20 @@ export default function PatientDashboard() {
             </div>
 
             {/* Support/Emergency Widget */}
-            <GlassCard className="border-dashed border-rose-200 bg-rose-50/30 shadow-none text-center">
-              <ShieldCheck className="h-8 w-8 text-rose-500 mx-auto mb-3" />
-              <h4 className="font-bold text-rose-900">Need Urgent Help?</h4>
-              <p className="text-xs text-rose-600 mb-4 font-medium italic">Our emergency line is available 24/7</p>
-              <AnimatedButton variant="ghost" className="w-full text-rose-600 hover:bg-rose-100 font-bold border border-rose-200 rounded-xl">
+            <GlassCard className="border-2 border-dashed border-blue-100 bg-white/50 p-8 text-center shadow-lg shadow-blue-500/5">
+              <div className="mb-4 flex justify-center">
+                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-rose-50 border-2 border-rose-100">
+                  <ShieldCheck className="h-8 w-8 text-[#e11d48]" />
+                </div>
+              </div>
+              <h4 className="text-xl font-extrabold text-[#881337] mb-1">Need Urgent Help?</h4>
+              <p className="text-sm text-[#e11d48] mb-6 font-bold italic tracking-tight italic">Our emergency line is available 24/7</p>
+              
+              <AnimatedButton 
+                variant="outline" 
+                className="w-full h-14 rounded-3xl border-2 border-[#e11d48]/20 bg-white text-[#e11d48] hover:bg-[#e11d48] hover:text-white hover:border-[#e11d48] font-bold text-lg transition-all shadow-sm active:scale-95"
+                onClick={() => router.push('/patient/support/emergency')}
+              >
                 Call Support
               </AnimatedButton>
             </GlassCard>
