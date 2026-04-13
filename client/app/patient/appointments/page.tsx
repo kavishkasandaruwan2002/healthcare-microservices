@@ -32,13 +32,42 @@ interface Doctor {
   specialization: string;
   rating: number;
   location: string;
+  image: string;
 }
 
 const mockDoctors: Doctor[] = [
-  { id: '1', name: 'Dr. Sarah Wilson', specialization: 'Cardiologist', rating: 4.9, location: 'Virtual / New York' },
-  { id: '2', name: 'Dr. Michael Chen', specialization: 'Neurologist', rating: 4.8, location: 'Virtual / Chicago' },
-  { id: '3', name: 'Dr. Elena Rodriguez', specialization: 'Dermatologist', rating: 4.9, location: 'Virtual / Miami' },
-  { id: '4', name: 'Dr. David Kim', specialization: 'Pediatrician', rating: 4.7, location: 'Virtual / Los Angeles' },
+  { 
+    id: '1', 
+    name: 'Dr. Sarah Wilson', 
+    specialization: 'Cardiologist', 
+    rating: 4.9, 
+    location: 'Virtual / New York',
+    image: 'https://images.unsplash.com/photo-1551836022-d5d88e9218df?auto=format&fit=crop&q=80&w=400&h=300'
+  },
+  { 
+    id: '2', 
+    name: 'Dr. Michael Chen', 
+    specialization: 'Neurologist', 
+    rating: 4.8, 
+    location: 'Virtual / Chicago',
+    image: 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&q=80&w=400&h=300'
+  },
+  { 
+    id: '3', 
+    name: 'Dr. Elena Rodriguez', 
+    specialization: 'Dermatologist', 
+    rating: 4.9, 
+    location: 'Virtual / Miami',
+    image: 'https://images.unsplash.com/photo-1594824476967-48c8b964273f?auto=format&fit=crop&q=80&w=400&h=300'
+  },
+  { 
+    id: '4', 
+    name: 'Dr. David Kim', 
+    specialization: 'Pediatrician', 
+    rating: 4.7, 
+    location: 'Virtual / Los Angeles',
+    image: 'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?auto=format&fit=crop&q=80&w=400&h=300'
+  },
 ]
 
 export default function PatientAppointments() {
@@ -170,8 +199,13 @@ export default function PatientAppointments() {
                       )}
                       onClick={() => setSelectedDoctor(doc)}
                     >
-                      <div className="aspect-[4/3] bg-slate-100 flex items-center justify-center overflow-hidden border-b border-slate-50">
-                        <User className="h-16 w-16 text-slate-300 group-hover:scale-110 transition-transform duration-500" />
+                      <div className="aspect-[4/3] bg-slate-100 flex items-center justify-center overflow-hidden border-b border-slate-50 relative">
+                        <img 
+                          src={doc.image} 
+                          alt={doc.name} 
+                          className="h-full w-full object-cover group-hover:scale-110 transition-transform duration-700" 
+                        />
+                        <div className="absolute inset-0 bg-linear-to-t from-slate-900/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                       </div>
                       <div className="p-6">
                         <div className="mb-2 flex items-center justify-between">
