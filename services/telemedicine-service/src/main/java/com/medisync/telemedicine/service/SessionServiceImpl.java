@@ -64,69 +64,147 @@ public class SessionServiceImpl implements SessionService {
     public TokenResponse generateToken(UUID sessionId, UserPrincipal p, boolean refreshOnly) {
         Session s = getById(sessionId);
         assertCallerIsParticipant(s, p.getUserId());
+
+        // Status checks for CANCELLED and ENDED sessions
         if (!refreshOnly && s.getStatus() == SessionStatus.CANCELLED) {
             throw new SessionAlreadyEndedException("Cannot join a cancelled session");
         }
         if (!refreshOnly && s.getStatus() == SessionStatus.ENDED) {
             throw new SessionAlreadyEndedException("Session has already ended");
         }
-        if(!refreshOnly && s.getStatus()!=SessionStatus.WAITING && s.getStatus()!=SessionStatus.ACTIVE) throw new InvalidSessionStateException("Session status does not allow token generation");
+        if(!refreshOnly && s.getStatus()!=SessionStatus.WAITING && s.getStatus()!=SessionStatus.ACTIVE) {
+            throw new InvalidSessionStateException("Session status does not allow token generation");
+        }
+
         UUID uid = UUID.fromString(p.getUserId());
-        Participant participant = participantRepository.findBySessionAndUserId(s, uid).orElseGet(() -> participantRepository.save(Participant.builder().session(s).userId(uid).role(uid.equals(s.getDoctorId())?ParticipantRole.DOCTOR:ParticipantRole.PATIENT).joinedAt(LocalDateTime.now()).agoraUid(ThreadLocalRandom.current().nextInt(100000,999999)).build()));
+        Participant participant = participantRepository.findBySessionAndUserId(s, uid).orElseGet(() ->
+            participantRepository.save(Participant.builder()
+                .session(s)
+                .userId(uid)
+                .role(uid.equals(s.getDoctorId()) ? ParticipantRole.DOCTOR : ParticipantRole.PATIENT)
+                .joinedAt(LocalDateTime.now())
+                .agoraUid(ThreadLocalRandom.current().nextInt(100000, 999999))
+                .build())
+        );
+
         String token = agoraTokenService.generateToken(s.getChannelName(), participant.getAgoraUid());
         tokensGeneratedCounter.increment();
+
         if(!refreshOnly){
             boolean patientWasJoined = Boolean.TRUE.equals(s.getPatientJoined());
             boolean doctorWasJoined = Boolean.TRUE.equals(s.getDoctorJoined());
-            if(uid.equals(s.getPatientId())) s.setPatientJoined(true);
-            if(uid.equals(s.getDoctorId())) s.setDoctorJoined(true);
+            boolean isPatient = uid.equals(s.getPatientId());
+            boolean isDoctor = uid.equals(s.getDoctorId());
+
+            // Mark as joined, but don't flip state if already joined
+            if(isPatient) s.setPatientJoined(true);
+            if(isDoctor) s.setDoctorJoined(true);
+
+            // Check if caller is re-joining without state change
             boolean callerRejoinedWithoutStateChange =
-                    (uid.equals(s.getPatientId()) && patientWasJoined) ||
-                    (uid.equals(s.getDoctorId()) && doctorWasJoined);
-            if(!callerRejoinedWithoutStateChange && Boolean.TRUE.equals(s.getPatientJoined()) && Boolean.TRUE.equals(s.getDoctorJoined()) && s.getStatus()==SessionStatus.WAITING){ s.setStatus(SessionStatus.ACTIVE); s.setStartedAt(LocalDateTime.now()); sessionEventPublisher.publishSessionStarted(s); }
+                    (isPatient && patientWasJoined) ||
+                    (isDoctor && doctorWasJoined);
+
+            // Only transition to ACTIVE and publish event if both joined and not a re-join
+            if(!callerRejoinedWithoutStateChange
+                    && Boolean.TRUE.equals(s.getPatientJoined())
+                    && Boolean.TRUE.equals(s.getDoctorJoined())
+                    && s.getStatus()==SessionStatus.WAITING){
+                s.setStatus(SessionStatus.ACTIVE);
+                s.setStartedAt(LocalDateTime.now());
+                sessionEventPublisher.publishSessionStarted(s);
+            }
             sessionRepository.save(s);
         }
-        return TokenResponse.builder().token(token).channelName(s.getChannelName()).agoraAppId(s.getAgoraAppId()).uid(participant.getAgoraUid()).expiresInSeconds(3600).sessionId(s.getSessionId()).sessionStatus(s.getStatus()).build();
+        return TokenResponse.builder()
+            .token(token)
+            .channelName(s.getChannelName())
+            .agoraAppId(s.getAgoraAppId())
+            .uid(participant.getAgoraUid())
+            .expiresInSeconds(3600)
+            .sessionId(s.getSessionId())
+            .sessionStatus(s.getStatus())
+            .build();
     }
 
     @Override
     @Transactional
     public EndSessionResponse endSession(UUID sessionId, UserPrincipal p) {
         Session s = getById(sessionId);
-        if(!(p.isAdmin() || (p.isDoctor() && UUID.fromString(p.getUserId()).equals(s.getDoctorId())))) throw new AccessDeniedException("Only assigned doctor or admin can end session");
+
+        // Authorization: only admin or assigned doctor can end
+        if(!(p.isAdmin() || (p.isDoctor() && UUID.fromString(p.getUserId()).equals(s.getDoctorId())))) {
+            throw new AccessDeniedException("Only assigned doctor or admin can end session");
+        }
+
+        // Status validation
         if (s.getStatus() == SessionStatus.WAITING) {
             throw new SessionAlreadyEndedException("Cannot end a session that was never started");
         }
         if (s.getStatus() == SessionStatus.CANCELLED) {
             throw new SessionAlreadyEndedException("Cannot end a cancelled session");
         }
-        if(s.getStatus()!=SessionStatus.ACTIVE) throw new InvalidSessionStateException("Only active session can be ended");
+        if(s.getStatus()!=SessionStatus.ACTIVE) {
+            throw new InvalidSessionStateException("Only active session can be ended");
+        }
+
         s.setStatus(SessionStatus.ENDED);
         s.setEndedAt(LocalDateTime.now());
+        // Handle null startedAt gracefully
         s.setDurationMinutes(s.getStartedAt() == null ? 0 : (int) ChronoUnit.MINUTES.between(s.getStartedAt(), s.getEndedAt()));
-        List<Participant> parts = participantRepository.findBySession(s); parts.forEach(x -> x.setLeftAt(s.getEndedAt())); participantRepository.saveAll(parts);
-        sessionRepository.save(s); sessionEventPublisher.publishSessionEnded(s); sessionsEndedCounter.increment();
-        return EndSessionResponse.builder().sessionId(s.getSessionId()).status(s.getStatus()).startedAt(s.getStartedAt()).endedAt(s.getEndedAt()).durationMinutes(s.getDurationMinutes()).build();
+
+        List<Participant> parts = participantRepository.findBySession(s);
+        parts.forEach(x -> x.setLeftAt(s.getEndedAt()));
+        participantRepository.saveAll(parts);
+
+        sessionRepository.save(s);
+        sessionEventPublisher.publishSessionEnded(s);
+        sessionsEndedCounter.increment();
+
+        return EndSessionResponse.builder()
+            .sessionId(s.getSessionId())
+            .status(s.getStatus())
+            .startedAt(s.getStartedAt())
+            .endedAt(s.getEndedAt())
+            .durationMinutes(s.getDurationMinutes())
+            .build();
     }
 
     @Override
     @Transactional
     public SessionResponse cancelSession(UUID sessionId, CancelSessionRequest request, UserPrincipal p) {
-        if(!p.isAdmin()) throw new AccessDeniedException("Admin only");
-        Session s=getById(sessionId);
+        if(!p.isAdmin()) {
+            throw new AccessDeniedException("Admin only");
+        }
+        Session s = getById(sessionId);
+
+        // Status validation
         if (s.getStatus() == SessionStatus.ACTIVE) {
             throw new SessionAlreadyEndedException("Cannot cancel an ongoing session. End it first.");
         }
         if (s.getStatus() == SessionStatus.ENDED) {
             throw new SessionAlreadyEndedException("Cannot cancel a completed session");
         }
-        if(s.getStatus()!=SessionStatus.WAITING) throw new InvalidSessionStateException("Only waiting session can be cancelled");
+        if(s.getStatus()!=SessionStatus.WAITING) {
+            throw new InvalidSessionStateException("Only waiting session can be cancelled");
+        }
+
         s.setStatus(SessionStatus.CANCELLED);
         return toResponse(sessionRepository.save(s));
     }
 
     @Override public Page<SessionResponse> getAllSessions(SessionStatus status, UUID doctorId, UUID patientId, Pageable pageable, UserPrincipal p){ if(!p.isAdmin()) throw new AccessDeniedException("Admin only"); return sessionRepository.findAllWithFilters(status,doctorId,patientId,pageable).map(this::toResponse); }
-    @Override public List<ParticipantResponse> getParticipants(UUID sessionId, UserPrincipal p){ Session s=getById(sessionId); if(!(p.isAdmin() || (p.isDoctor() && UUID.fromString(p.getUserId()).equals(s.getDoctorId())))) throw new AccessDeniedException("Access denied"); return participantRepository.findBySession(s).stream().map(this::toParticipantResponse).toList(); }
+
+    @Override
+    public List<ParticipantResponse> getParticipants(UUID sessionId, UserPrincipal p) {
+        Session s = getById(sessionId);
+        // Authorization: admin or assigned doctor only
+        if(!(p.isAdmin() || (p.isDoctor() && UUID.fromString(p.getUserId()).equals(s.getDoctorId())))) {
+            throw new AccessDeniedException("Access denied");
+        }
+        // Return empty list if no participants, not 404
+        return participantRepository.findBySession(s).stream().map(this::toParticipantResponse).toList();
+    }
     @Override public SessionStatsResponse getStats(UserPrincipal p){ if(!p.isAdmin()) throw new AccessDeniedException("Admin only"); Double avg=sessionRepository.findAverageDurationMinutes(); return SessionStatsResponse.builder().totalSessions(sessionRepository.count()).activeSessions(sessionRepository.countByStatus(SessionStatus.ACTIVE)).completedSessions(sessionRepository.countByStatus(SessionStatus.ENDED)).cancelledSessions(sessionRepository.countByStatus(SessionStatus.CANCELLED)).averageDurationMinutes(avg==null?0.0:avg).build(); }
 
     private Session getById(UUID id){ return sessionRepository.findById(id).orElseThrow(() -> new SessionNotFoundException("Session not found with id: " + id)); }
