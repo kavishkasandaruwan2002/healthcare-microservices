@@ -148,6 +148,31 @@ public class EmailService {
     }
 
     // ─────────────────────────────────────────────────────────────────────────
+    // Prescription events
+    // ─────────────────────────────────────────────────────────────────────────
+
+    public void sendPrescriptionIssuedEmail(String recipientEmail, String recipientId,
+                                            String doctorId, String patientName,
+                                            String medications) {
+        String html = renderTemplate("email/prescription-issued",
+                ctx -> {
+                    ctx.setVariable("patientName", patientName);
+                    ctx.setVariable("medications", medications);
+                    ctx.setVariable("doctorId", doctorId);
+                });
+
+        EmailNotificationRequest request = EmailNotificationRequest.builder()
+                .to(recipientEmail)
+                .recipientId(recipientId)
+                .subject("New Prescription Issued")
+                .body("Dear " + patientName + ", a new prescription has been issued for you. Medications: " + medications)
+                .notificationType("EMAIL")
+                .build();
+
+        sendHtmlEmail(request, html);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
     // Appointment events
     // ─────────────────────────────────────────────────────────────────────────
 

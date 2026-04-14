@@ -89,6 +89,18 @@ public class NotificationController {
         return ResponseEntity.ok("Doctor rejection email sent successfully");
     }
 
+    @PostMapping("/email/prescription-issued")
+    public ResponseEntity<String> sendPrescriptionIssuedEmail(
+            @RequestParam String email,
+            @RequestParam String recipientId,
+            @RequestParam String doctorId,
+            @RequestParam String patientName,
+            @RequestParam String medications) {
+        log.info("Sending prescription issued email to patient: {}", email);
+        emailService.sendPrescriptionIssuedEmail(email, recipientId, doctorId, patientName, medications);
+        return ResponseEntity.ok("Prescription email sent successfully");
+    }
+
     // ─────────────────────────────────────────────────────────────────────────
     // Appointment events
     // ─────────────────────────────────────────────────────────────────────────

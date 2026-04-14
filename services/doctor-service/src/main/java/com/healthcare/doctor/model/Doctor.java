@@ -10,6 +10,7 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Data
@@ -37,6 +38,7 @@ public class Doctor {
     private Double consultationFee;
     private String status;
     private List<String> availability;
+    private List<AvailabilitySlot> availabilitySlots;
     private String role;
     private String yearsOfExperience;
     private String qualification;

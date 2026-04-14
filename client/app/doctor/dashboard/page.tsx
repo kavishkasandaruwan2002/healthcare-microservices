@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 import api from '@/services/api'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
-import { Activity, Calendar, Users, Stethoscope, LogOut, CheckCircle, Edit2, Save, X } from 'lucide-react'
+import { Activity, Calendar, Users, Stethoscope, LogOut, CheckCircle, Edit2, Save, X, Clock, FileText } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import Link from 'next/link'
 
@@ -23,6 +23,21 @@ interface DoctorProfile {
   hospitalAffiliation: string
   status: string
   isVerified: boolean
+  availabilitySlots?: { id: string, date: string, startTime: string, endTime: string, isBooked: boolean }[]
+}
+
+interface Patient {
+  id: string;
+  name: string;
+  email: string;
+}
+
+interface Prescription {
+  id: string;
+  patientName: string;
+  medications: string;
+  instructions: string;
+  dateIssued: number;
 }
 
 export default function DoctorDashboard() {
@@ -34,6 +49,11 @@ export default function DoctorDashboard() {
   const [editData, setEditData] = useState<Partial<DoctorProfile>>({})
   const [loading, setLoading] = useState(false)
   const [profileLoading, setProfileLoading] = useState(true)
+
+  const [prescriptions, setPrescriptions] = useState<Prescription[]>([])
+  const [patients, setPatients] = useState<Patient[]>([])
+  const [newSlot, setNewSlot] = useState({ date: '', startTime: '', endTime: '' })
+  const [newPrescription, setNewPrescription] = useState({ patientId: '', patientName: '', medications: '', instructions: '' })
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -65,6 +85,32 @@ export default function DoctorDashboard() {
     }
   }, [isAuthenticated, user?.id, fetchDoctorProfile])
 
+  const fetchPrescriptions = useCallback(async () => {
+    if (!user?.id) return;
+    try {
+      const res = await api.get(`/doctors/${user.id}/prescriptions`);
+      setPrescriptions(res.data);
+    } catch (err) {
+      console.error(err);
+    }
+  }, [user?.id]);
+
+  const fetchPatients = useCallback(async () => {
+    try {
+      const res = await api.get(`/patients`);
+      setPatients(res.data);
+    } catch (err) {
+      console.error(err);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (activeTab === 'prescriptions') {
+      fetchPrescriptions();
+      fetchPatients();
+    }
+  }, [activeTab, fetchPrescriptions, fetchPatients]);
+
   const handleUpdateProfile = async () => {
     try {
       setLoading(true)
@@ -81,6 +127,37 @@ export default function DoctorDashboard() {
       setLoading(false)
     }
   }
+
+  const handleAddSlot = async () => {
+    try {
+      await api.post(`/doctors/${user?.id}/slots`, newSlot);
+      toast.success('Slot added successfully');
+      fetchDoctorProfile();
+      setNewSlot({ date: '', startTime: '', endTime: '' });
+    } catch (err) {
+      toast.error('Failed to add slot');
+    }
+  };
+
+  const handleIssuePrescription = async () => {
+    if (!newPrescription.patientId || !newPrescription.medications) {
+      toast.error('Please fill required fields');
+      return;
+    }
+    try {
+      const patient = patients.find(p => p.id === newPrescription.patientId);
+      const payload = {
+         ...newPrescription,
+         patientName: patient ? patient.name : 'Unknown Patient'
+      };
+      await api.post(`/doctors/${user?.id}/prescriptions`, payload);
+      toast.success('Prescription issued successfully');
+      fetchPrescriptions();
+      setNewPrescription({ patientId: '', patientName: '', medications: '', instructions: '' });
+    } catch (err) {
+      toast.error('Failed to issue prescription');
+    }
+  };
 
   const handleEditChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setEditData({
@@ -146,6 +223,28 @@ export default function DoctorDashboard() {
           >
             <Users className="h-5 w-5" />
             My Patients
+          </button>
+          <button 
+            onClick={() => setActiveTab('slots')}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
+              activeTab === 'slots' 
+                ? 'bg-blue-50 text-blue-700 border border-blue-200 font-medium' 
+                : 'text-slate-600 hover:bg-slate-100'
+            }`}
+          >
+            <Clock className="h-5 w-5" />
+            Availability Slots
+          </button>
+          <button 
+            onClick={() => setActiveTab('prescriptions')}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
+              activeTab === 'prescriptions' 
+                ? 'bg-blue-50 text-blue-700 border border-blue-200 font-medium' 
+                : 'text-slate-600 hover:bg-slate-100'
+            }`}
+          >
+            <FileText className="h-5 w-5" />
+            Prescriptions
           </button>
         </nav>
 
@@ -441,6 +540,116 @@ export default function DoctorDashboard() {
             <Card className="border-slate-200 shadow-sm text-center py-16">
               <p className="text-slate-500 font-medium">No patients yet</p>
               <p className="text-sm text-slate-400 mt-1">Your patient list will appear here</p>
+            </Card>
+          </div>
+        )}
+
+        {/* Slots Tab */}
+        {activeTab === 'slots' && (
+          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <Card className="border-slate-200 shadow-sm">
+              <CardHeader>
+                <CardTitle className="text-lg text-slate-900">Add New Slot</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-slate-700">Date</label>
+                    <input type="date" value={newSlot.date} onChange={e => setNewSlot({...newSlot, date: e.target.value})} className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-600" />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-slate-700">Start Time</label>
+                    <input type="time" value={newSlot.startTime} onChange={e => setNewSlot({...newSlot, startTime: e.target.value})} className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-600" />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-slate-700">End Time</label>
+                    <input type="time" value={newSlot.endTime} onChange={e => setNewSlot({...newSlot, endTime: e.target.value})} className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-600" />
+                  </div>
+                  <Button onClick={handleAddSlot} className="w-full">Add Slot</Button>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card className="border-slate-200 shadow-sm">
+               <CardHeader>
+                 <CardTitle className="text-lg text-slate-900">Current Slots</CardTitle>
+               </CardHeader>
+               <CardContent>
+                 {doctorProfile?.availabilitySlots?.length ? (
+                   <ul className="divide-y divide-slate-100">
+                     {doctorProfile.availabilitySlots.map(slot => (
+                       <li key={slot.id} className="py-3 flex justify-between items-center">
+                         <div>
+                           <p className="font-medium text-slate-900">{slot.date}</p>
+                           <p className="text-sm text-slate-500">{slot.startTime} - {slot.endTime}</p>
+                         </div>
+                         <div className={`px-2 py-1 text-xs rounded-full ${slot.isBooked ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
+                           {slot.isBooked ? 'Booked' : 'Available'}
+                         </div>
+                       </li>
+                     ))}
+                   </ul>
+                 ) : (
+                   <p className="text-slate-500">No availability slots set.</p>
+                 )}
+               </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* Prescriptions Tab */}
+        {activeTab === 'prescriptions' && (
+          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <Card className="border-slate-200 shadow-sm">
+              <CardHeader>
+                <CardTitle className="text-lg text-slate-900">Issue Prescription</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-slate-700">Select Patient</label>
+                    <select value={newPrescription.patientId} onChange={e => setNewPrescription({...newPrescription, patientId: e.target.value})} className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-600">
+                      <option value="">-- Choose Patient --</option>
+                      {patients.map(p => (
+                        <option key={p.id} value={p.id}>{p.name} ({p.email})</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-slate-700">Medications</label>
+                    <textarea value={newPrescription.medications} onChange={e => setNewPrescription({...newPrescription, medications: e.target.value})} rows={3} placeholder="E.g. Amoxicillin 500mg, Paracetamol 500mg" className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-600 resize-none"></textarea>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-slate-700">Instructions</label>
+                    <textarea value={newPrescription.instructions} onChange={e => setNewPrescription({...newPrescription, instructions: e.target.value})} rows={2} placeholder="E.g. Take after meals" className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-600 resize-none"></textarea>
+                  </div>
+                  <Button onClick={handleIssuePrescription} className="w-full md:w-auto">Issue Prescription</Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-slate-200 shadow-sm">
+               <CardHeader>
+                 <CardTitle className="text-lg text-slate-900">Recent Prescriptions</CardTitle>
+               </CardHeader>
+               <CardContent>
+                 {prescriptions.length ? (
+                   <ul className="divide-y divide-slate-100">
+                     {prescriptions.map(p => (
+                       <li key={p.id} className="py-4">
+                         <div className="flex justify-between">
+                           <p className="font-semibold text-slate-900">Patient: {p.patientName}</p>
+                           <p className="text-sm text-slate-500">{new Date(p.dateIssued).toLocaleDateString()}</p>
+                         </div>
+                         <p className="text-sm text-slate-700 mt-2"><span className="font-medium">Meds:</span> {p.medications}</p>
+                         <p className="text-sm text-slate-700 mt-1"><span className="font-medium">Instructions:</span> {p.instructions}</p>
+                       </li>
+                     ))}
+                   </ul>
+                 ) : (
+                   <p className="text-slate-500">No prescriptions issued yet.</p>
+                 )}
+               </CardContent>
             </Card>
           </div>
         )}

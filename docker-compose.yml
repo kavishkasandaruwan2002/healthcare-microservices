@@ -17,7 +17,7 @@ services:
       mongo:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8761/actuator/health"]
+      test: [ "CMD", "curl", "-f", "http://localhost:8761/actuator/health" ]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -39,7 +39,7 @@ services:
       - healthcare-network
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-root}"]
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-root}" ]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -56,7 +56,7 @@ services:
       - healthcare-network
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      test: [ "CMD", "mongosh", "--eval", "db.adminCommand('ping')" ]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -71,7 +71,7 @@ services:
       - healthcare-network
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      test: [ "CMD", "rabbitmq-diagnostics", "-q", "ping" ]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -91,7 +91,7 @@ services:
       - healthcare-network
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8085/actuator/health"]
+      test: [ "CMD", "curl", "-f", "http://localhost:8085/actuator/health" ]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -186,7 +186,7 @@ services:
       - SPRING_MAIL_HOST=smtp.gmail.com
       - SPRING_MAIL_PORT=587
       - SPRING_MAIL_USERNAME=${MAIL_USERNAME:-peirisayodya369@gmail.com}
-      - SPRING_MAIL_PASSWORD=${MAIL_PASSWORD:-jqynxfxydnfegknj}
+      - SPRING_MAIL_PASSWORD=${MAIL_PASSWORD:-tpmlonjrdqksnhkm}
       - SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH=true
       - SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE=true
       - NOTIFICATION_MAIL_FROM=${MAIL_USERNAME:-peirisayodya369@gmail.com}

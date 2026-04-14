@@ -79,6 +79,12 @@ public class DoctorController {
         return ResponseEntity.ok(doctorService.updateDoctor(id, doctor));
     }
 
+    @PostMapping("/{id}/slots")
+    public ResponseEntity<DoctorDTO> addAvailabilitySlot(@PathVariable String id, @RequestBody com.healthcare.doctor.model.AvailabilitySlot slot) {
+        log.info("Adding availability slot for doctor: {}", id);
+        return ResponseEntity.ok(doctorService.addAvailabilitySlot(id, slot));
+    }
+
     @PatchMapping("/{id}/status")
     public ResponseEntity<String> updateDoctorStatus(
             @PathVariable String id,

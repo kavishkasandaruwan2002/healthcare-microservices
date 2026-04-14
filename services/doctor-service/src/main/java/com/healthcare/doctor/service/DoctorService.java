@@ -160,10 +160,25 @@ public class DoctorService {
             doctor.setAvailability(updatedDoctor.getAvailability());
         }
 
+        if (updatedDoctor.getAvailabilitySlots() != null) {
+            doctor.setAvailabilitySlots(updatedDoctor.getAvailabilitySlots());
+        }
+
         doctor.setUpdatedAt(System.currentTimeMillis());
 
         Doctor saved = doctorRepository.save(doctor);
         log.info("Doctor updated: {}", id);
+        return mapToDTO(saved);
+    }
+
+    public DoctorDTO addAvailabilitySlot(String id, com.healthcare.doctor.model.AvailabilitySlot slot) {
+        Doctor doctor = getDoctorById(id);
+        if (doctor.getAvailabilitySlots() == null) {
+            doctor.setAvailabilitySlots(new java.util.ArrayList<>());
+        }
+        doctor.getAvailabilitySlots().add(slot);
+        doctor.setUpdatedAt(System.currentTimeMillis());
+        Doctor saved = doctorRepository.save(doctor);
         return mapToDTO(saved);
     }
 
@@ -227,6 +242,7 @@ public class DoctorService {
                 .hospitalAffiliation(doctor.getHospitalAffiliation())
                 .isVerified(doctor.getIsVerified())
                 .role(doctor.getRole())
+                .availabilitySlots(doctor.getAvailabilitySlots())
                 .build();
     }
 }

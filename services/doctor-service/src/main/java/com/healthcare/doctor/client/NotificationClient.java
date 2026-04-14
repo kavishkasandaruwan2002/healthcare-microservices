@@ -43,4 +43,13 @@ public interface NotificationClient {
             @RequestParam("doctorName") String doctorName,
             @RequestParam("rejectionReason") String rejectionReason
     );
+
+    @PostMapping("/email/prescription-issued")
+    void sendPrescriptionIssuedEmail(
+            @RequestParam("email") String email,
+            @RequestParam("recipientId") String recipientId,
+            @RequestParam("doctorId") String doctorId,
+            @RequestParam("patientName") String patientName,
+            @RequestParam("medications") String medications
+    );
 }
