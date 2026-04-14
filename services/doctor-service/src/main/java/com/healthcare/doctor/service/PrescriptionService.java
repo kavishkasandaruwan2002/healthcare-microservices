@@ -25,7 +25,9 @@ public class PrescriptionService {
 
         // Notify patient
         try {
-            String patientEmail = prescription.getPatientId() + "@patient.com"; // Simulated email
+            String patientEmail = (prescription.getPatientEmail() != null && !prescription.getPatientEmail().isEmpty()) 
+                                    ? prescription.getPatientEmail() 
+                                    : prescription.getPatientId() + "@patient.com"; // Fallback simulated email
             notificationClient.sendPrescriptionIssuedEmail(
                     patientEmail,
                     prescription.getPatientId(),

@@ -54,14 +54,20 @@ export default function DoctorDashboard() {
   const [patients, setPatients] = useState<Patient[]>([])
   const [newSlot, setNewSlot] = useState({ date: '', startTime: '', endTime: '' })
   const [newPrescription, setNewPrescription] = useState({ patientId: '', patientName: '', medications: '', instructions: '' })
+  const [hasMounted, setHasMounted] = useState(false)
 
   useEffect(() => {
+    setHasMounted(true)
+  }, [])
+
+  useEffect(() => {
+    if (!hasMounted) return;
     if (!isAuthenticated) {
       router.push('/doctor/login')
     } else if (user?.role !== 'ROLE_DOCTOR') {
       router.push('/')
     }
-  }, [isAuthenticated, user, router])
+  }, [isAuthenticated, user, router, hasMounted])
 
   const fetchDoctorProfile = useCallback(async () => {
     try {
@@ -97,7 +103,7 @@ export default function DoctorDashboard() {
 
   const fetchPatients = useCallback(async () => {
     try {
-      const res = await api.get(`/patients`);
+      const res = await api.get(`/patients/all`);
       setPatients(res.data);
     } catch (err) {
       console.error(err);
@@ -148,7 +154,8 @@ export default function DoctorDashboard() {
       const patient = patients.find(p => p.id === newPrescription.patientId);
       const payload = {
          ...newPrescription,
-         patientName: patient ? patient.name : 'Unknown Patient'
+         patientName: patient ? patient.name : 'Unknown Patient',
+         patientEmail: patient ? patient.email : ''
       };
       await api.post(`/doctors/${user?.id}/prescriptions`, payload);
       toast.success('Prescription issued successfully');
@@ -166,6 +173,7 @@ export default function DoctorDashboard() {
     })
   }
 
+  if (!hasMounted) return null
   if (!isAuthenticated || !user || user.role !== 'ROLE_DOCTOR') return null
 
   return (

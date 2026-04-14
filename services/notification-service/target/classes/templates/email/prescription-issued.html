@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your New Prescription</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7fa;
+            margin: 0;
+            padding: 0;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 600px;
+            margin: 40px auto;
+            background: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+            overflow: hidden;
+            border: 1px solid #e1e8ed;
+        }
+        .header {
+            background-color: #2563eb;
+            color: #ffffff;
+            padding: 30px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 600;
+        }
+        .content {
+            padding: 30px;
+            color: #334155;
+        }
+        .greeting {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 20px;
+        }
+        .info-box {
+            background-color: #f8fafc;
+            border-left: 4px solid #3b82f6;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 4px;
+            font-size: 15px;
+        }
+        .info-label {
+            font-weight: 600;
+            color: #475569;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            font-size: 12px;
+            letter-spacing: 0.5px;
+        }
+        .info-value {
+            margin-bottom: 15px;
+            color: #0f172a;
+        }
+        .info-value:last-child {
+            margin-bottom: 0;
+        }
+        .cta-button {
+            display: inline-block;
+            background-color: #2563eb;
+            color: #ffffff;
+            text-decoration: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-weight: 500;
+            margin-top: 10px;
+            transition: background-color 0.2s;
+        }
+        .cta-button:hover {
+            background-color: #1d4ed8;
+        }
+        .footer {
+            background-color: #f8fafc;
+            padding: 20px;
+            text-align: center;
+            font-size: 13px;
+            color: #64748b;
+            border-top: 1px solid #e1e8ed;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>New Prescription Issued</h1>
+        </div>
+        <div class="content">
+            <div class="greeting">Hello <span th:text="${patientName}">Patient</span>,</div>
+            
+            <p>Your doctor has securely issued a new digital prescription for you through the HealthCare Platform. Please find the details below:</p>
+
+            <div class="info-box">
+                <div class="info-label">Doctor ID</div>
+                <div class="info-value" th:text="${doctorId}">Dr. Smith</div>
+                
+                <div class="info-label">Prescribed Medications</div>
+                <div class="info-value" style="white-space: pre-line;" th:text="${medications}">Amoxicillin 500mg...</div>
+            </div>
+
+            <p>Log in to your patient dashboard at any time to view your full medical history, download records, or book a follow-up appointment.</p>
+
+            <div style="text-align: center; margin-top: 30px;">
+                <a href="#" class="cta-button">View Full Details</a>
+            </div>
+        </div>
+        <div class="footer">
+            <p>This is an automated message from the HealthCare Platform.<br>Please do not reply directly to this email.</p>
+        </div>
+    </div>
+</body>
+</html>
