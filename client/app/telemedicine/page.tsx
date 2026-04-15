@@ -1,7 +1,10 @@
 "use client"
 
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect, useRef, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import type { IAgoraRTCClient, IMicrophoneAudioTrack, ICameraVideoTrack, IAgoraRTCRemoteUser } from 'agora-rtc-sdk-ng'
+import { telemedicineApiService, type SessionResponse, type TokenResponse } from '@/services/telemedicineApi'
+import toast from 'react-hot-toast'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAuthStore } from '@/store/authStore'
 import { GlassCard } from '@/components/ui/GlassCard'
@@ -26,15 +29,30 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-export default function TelemedicinePage() {
+function TelemedicinePageContent() {
   const router = useRouter()
   const { user, isAuthenticated } = useAuthStore()
+
+  const searchParams = useSearchParams()
+  const sessionId = searchParams.get('sessionId')
+  const appointmentId = searchParams.get('appointmentId')
   
   const [isMuted, setIsMuted] = useState(false)
   const [isVideoOff, setIsVideoOff] = useState(false)
   const [time, setTime] = useState(0)
   const [isChatOpen, setIsChatOpen] = useState(false)
   const [activeCall, setActiveCall] = useState(false)
+
+  const [agoraClient, setAgoraClient] = useState<IAgoraRTCClient | null>(null)
+  const [localAudioTrack, setLocalAudioTrack] = useState<IMicrophoneAudioTrack | null>(null)
+  const [localVideoTrack, setLocalVideoTrack] = useState<ICameraVideoTrack | null>(null)
+  const [remoteUsers, setRemoteUsers] = useState<IAgoraRTCRemoteUser[]>([])
+  const [sessionData, setSessionData] = useState<SessionResponse | null>(null)
+  const [tokenData, setTokenData] = useState<TokenResponse | null>(null)
+  const [isJoining, setIsJoining] = useState(false)
+  const [joinError, setJoinError] = useState<string | null>(null)
+  const localVideoRef = useRef<HTMLDivElement>(null)
+  const remoteVideoRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -47,7 +65,131 @@ export default function TelemedicinePage() {
     return () => clearInterval(timer)
   }, [])
 
+  useEffect(() => {
+    if (!isAuthenticated || !user) return
+    if (!sessionId && !appointmentId) return
+
+    const joinChannel = async () => {
+      setIsJoining(true)
+      setJoinError(null)
+      try {
+        let session: SessionResponse
+        if (sessionId) {
+          session = await telemedicineApiService.getSession(sessionId)
+        } else {
+          session = await telemedicineApiService.getSessionByAppointment(appointmentId!)
+        }
+        setSessionData(session)
+
+        const tokenInfo = await telemedicineApiService.getToken(session.sessionId)
+        setTokenData(tokenInfo)
+
+        const AgoraRTC = (await import('agora-rtc-sdk-ng')).default
+        const client = AgoraRTC.createClient({ mode: 'rtc', codec: 'vp8' })
+        setAgoraClient(client)
+
+        client.on('user-published', async (remoteUser, mediaType) => {
+          await client.subscribe(remoteUser, mediaType)
+          if (mediaType === 'video') {
+            setRemoteUsers(prev => [...prev.filter(u => u.uid !== remoteUser.uid), remoteUser])
+            setTimeout(() => {
+              if (remoteVideoRef.current) {
+                remoteUser.videoTrack?.play(remoteVideoRef.current)
+              }
+            }, 100)
+          }
+          if (mediaType === 'audio') {
+            remoteUser.audioTrack?.play()
+          }
+        })
+
+        client.on('user-unpublished', (remoteUser) => {
+          setRemoteUsers(prev => prev.filter(u => u.uid !== remoteUser.uid))
+        })
+
+        client.on('user-left', (remoteUser) => {
+          setRemoteUsers(prev => prev.filter(u => u.uid !== remoteUser.uid))
+        })
+
+        await client.join(
+          tokenInfo.agoraAppId,
+          tokenInfo.channelName,
+          tokenInfo.token,
+          tokenInfo.uid
+        )
+
+        const [audioTrack, videoTrack] = await AgoraRTC.createMicrophoneAndCameraTracks()
+        setLocalAudioTrack(audioTrack)
+        setLocalVideoTrack(videoTrack)
+
+        if (localVideoRef.current) {
+          videoTrack.play(localVideoRef.current)
+        }
+
+        await client.publish([audioTrack, videoTrack])
+        setActiveCall(true)
+
+        const refreshTimer = setTimeout(async () => {
+          try {
+            const newToken = await telemedicineApiService.refreshToken(session.sessionId)
+            await client.renewToken(newToken.token)
+          } catch (e) {
+            console.error('Token refresh failed', e)
+          }
+        }, 50 * 60 * 1000)
+
+        return () => clearTimeout(refreshTimer)
+
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : 'Failed to join session'
+        setJoinError(message)
+        console.error('Agora join error:', err)
+      } finally {
+        setIsJoining(false)
+      }
+    }
+
+    joinChannel()
+  }, [isAuthenticated, user, sessionId, appointmentId])
+
+  useEffect(() => {
+    return () => {
+      localAudioTrack?.stop()
+      localAudioTrack?.close()
+      localVideoTrack?.stop()
+      localVideoTrack?.close()
+      agoraClient?.leave()
+    }
+  }, [agoraClient, localAudioTrack, localVideoTrack])
+
   if (!isAuthenticated) return null
+
+  if (isJoining) return (
+    <div className="flex h-screen items-center justify-center bg-slate-950 text-white">
+      <div className="text-center space-y-4">
+        <div className="h-12 w-12 border-4 border-primary-500 border-t-transparent rounded-full animate-spin mx-auto" />
+        <p className="text-slate-300 font-medium">Joining secure session...</p>
+      </div>
+    </div>
+  )
+
+  if (joinError) return (
+    <div className="flex h-screen items-center justify-center bg-slate-950 text-white">
+      <div className="text-center space-y-4 max-w-md p-8">
+        <div className="h-16 w-16 bg-rose-500/20 rounded-full flex items-center justify-center mx-auto">
+          <PhoneOff className="h-8 w-8 text-rose-400" />
+        </div>
+        <h2 className="text-2xl font-bold">Failed to Join Session</h2>
+        <p className="text-slate-400">{joinError}</p>
+        <button
+          onClick={() => router.back()}
+          className="px-6 py-3 bg-primary-600 rounded-2xl font-semibold hover:bg-primary-700 transition-colors"
+        >
+          Go Back
+        </button>
+      </div>
+    </div>
+  )
 
   const formatTime = (secs: number) => {
     const m = Math.floor(secs / 60).toString().padStart(2, '0')
@@ -55,9 +197,42 @@ export default function TelemedicinePage() {
     return `${m}:${s}`
   }
 
-  const handleEndCall = () => {
-    if (user?.role === 'DOCTOR') router.push('/doctor/dashboard')
-    else router.push('/patient/dashboard')
+  const handleMuteToggle = async () => {
+    if (localAudioTrack) {
+      await localAudioTrack.setEnabled(isMuted)
+    }
+    setIsMuted(!isMuted)
+  }
+
+  const handleVideoToggle = async () => {
+    if (localVideoTrack) {
+      await localVideoTrack.setEnabled(isVideoOff)
+    }
+    setIsVideoOff(!isVideoOff)
+  }
+
+  const handleEndCall = async () => {
+    try {
+      localAudioTrack?.stop()
+      localAudioTrack?.close()
+      localVideoTrack?.stop()
+      localVideoTrack?.close()
+
+      if (agoraClient) {
+        await agoraClient.leave()
+      }
+
+      const isDoctor = user?.role === 'ROLE_DOCTOR' || user?.role === 'DOCTOR'
+      if (isDoctor && sessionData) {
+        await telemedicineApiService.endSession(sessionData.sessionId)
+      }
+    } catch (err) {
+      console.error('End call error:', err)
+    } finally {
+      const isDoctor = user?.role === 'ROLE_DOCTOR' || user?.role === 'DOCTOR'
+      if (isDoctor) router.push('/doctor/dashboard')
+      else router.push('/patient/dashboard')
+    }
   }
 
   return (
@@ -79,7 +254,7 @@ export default function TelemedicinePage() {
                 <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" /> Encrypted
               </span>
             </div>
-            <p className="text-xs text-slate-400 font-medium">Session ID: <span className="text-slate-300 font-bold">XC-942-8821</span></p>
+            <p className="text-xs text-slate-400 font-medium">Session ID: <span className="text-slate-300 font-bold">{sessionData?.sessionId?.slice(0, 8).toUpperCase() || 'Connecting...'}</span></p>
           </div>
         </div>
 
@@ -90,7 +265,7 @@ export default function TelemedicinePage() {
             </div>
             <div className="h-4 w-[1px] bg-white/10" />
             <div className="flex items-center gap-2 text-xs font-bold text-slate-300">
-              <Users className="h-3 w-3" /> 2 Participants
+              <Users className="h-3 w-3" /> {1 + remoteUsers.length} Participant{remoteUsers.length !== 1 ? 's' : ''}
             </div>
           </div>
         </GlassCard>
@@ -151,6 +326,7 @@ export default function TelemedicinePage() {
                     animate={{ opacity: 1 }}
                     className="absolute inset-0 flex items-center justify-center text-6xl font-black text-white/5 pointer-events-none select-none uppercase tracking-[1em]"
                   >
+                    <div ref={remoteVideoRef} className="absolute inset-0" />
                     Live Feed
                   </motion.div>
                 )}
@@ -176,18 +352,17 @@ export default function TelemedicinePage() {
               className="absolute top-10 right-10 w-64 aspect-video rounded-3xl bg-slate-800 border border-white/10 shadow-2xl overflow-hidden cursor-move group/pip"
             >
               <div className="absolute inset-0 bg-linear-to-br from-slate-700 to-slate-900 flex flex-col items-center justify-center">
+                 <div ref={localVideoRef} className="absolute inset-0 w-full h-full" />
                  <AnimatePresence>
                    {isVideoOff ? (
                      <motion.div 
                         initial={{ opacity: 0 }} 
                         animate={{ opacity: 1 }}
-                        className="text-2xl font-black text-white/20"
+                        className="text-2xl font-black text-white/20 z-10"
                       >
                         {user?.name?.[0] || 'U'}
                       </motion.div>
-                   ) : (
-                      <Video className="w-8 h-8 text-white/10" />
-                   )}
+                   ) : null}
                  </AnimatePresence>
               </div>
               <div className="absolute bottom-4 left-4 flex items-center gap-2">
@@ -274,7 +449,7 @@ export default function TelemedicinePage() {
         >
           <GlassCard className="py-4 px-8 border-white/20 bg-slate-900/40 backdrop-blur-2xl rounded-[32px] flex items-center gap-6 shadow-2xl ring-1 ring-white/10">
             <button 
-              onClick={() => setIsMuted(!isMuted)}
+              onClick={handleMuteToggle}
               className={cn(
                 "h-14 w-14 rounded-2xl flex items-center justify-center transition-all duration-300 active:scale-90",
                 isMuted ? "bg-rose-500 text-white shadow-lg shadow-rose-500/20" : "bg-white/5 text-slate-300 hover:bg-white/10"
@@ -284,7 +459,7 @@ export default function TelemedicinePage() {
             </button>
             
             <button 
-              onClick={() => setIsVideoOff(!isVideoOff)}
+              onClick={handleVideoToggle}
               className={cn(
                 "h-14 w-14 rounded-2xl flex items-center justify-center transition-all duration-300 active:scale-90",
                 isVideoOff ? "bg-rose-500 text-white shadow-lg shadow-rose-500/20" : "bg-white/5 text-slate-300 hover:bg-white/10"
@@ -314,5 +489,17 @@ export default function TelemedicinePage() {
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-full w-full bg-[radial-gradient(circle_at_center,_transparent_0%,_#020617_100%)] opacity-50" />
       </div>
     </div>
+  )
+}
+
+export default function TelemedicinePage() {
+  return (
+    <Suspense fallback={
+      <div className="flex h-screen items-center justify-center bg-slate-950 text-white">
+        <div className="h-12 w-12 border-4 border-primary-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    }>
+      <TelemedicinePageContent />
+    </Suspense>
   )
 }
