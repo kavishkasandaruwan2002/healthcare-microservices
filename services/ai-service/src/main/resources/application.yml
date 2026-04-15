@@ -4,6 +4,27 @@ server:
 spring:
   application:
     name: ai-service
+  data:
+    mongodb:
+      uri: ${SPRING_DATA_MONGODB_URI:mongodb://localhost:27017/ai_db}
+      auto-index-creation: true
+
+app:
+  ai:
+    provider: ${APP_AI_PROVIDER:rules}
+    gemini:
+      api-key: ${GEMINI_API_KEY:}
+      model: ${GEMINI_MODEL:gemini-2.5-flash}
+      base-url: ${GEMINI_BASE_URL:https://generativelanguage.googleapis.com}
+
+jwt:
+  secret: ${JWT_SECRET:404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
 
 eureka:
   client:
@@ -15,5 +36,3 @@ springdoc:
     path: /api/ai/v3/api-docs
   swagger-ui:
     path: /api/ai/swagger-ui.html
-
-

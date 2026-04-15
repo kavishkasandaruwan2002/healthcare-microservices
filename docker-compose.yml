@@ -31,7 +31,7 @@ services:
       MYSQL_USER: ${MYSQL_USER:-healthcare_user}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD:-healthcare_password}
     ports:
-      - "3306:3306"
+      - "3307:3306"
     volumes:
       - mysql-data:/var/lib/mysql
       - ./databases/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql
@@ -226,9 +226,15 @@ services:
     environment:
       - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE:-docker}
       - EUREKA_SERVER=${EUREKA_SERVER:-http://eureka:8761/eureka/}
+      - SPRING_DATA_MONGODB_URI=${AI_MONGODB_URI:-mongodb://mongo:27017/ai_db}
+      - APP_AI_PROVIDER=${APP_AI_PROVIDER:-rules}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - GEMINI_MODEL=${GEMINI_MODEL:-gemini-2.5-flash}
     depends_on:
       eureka:
         condition: service_healthy
+      mongo:
+        condition: service_started
     networks:
       - healthcare-network
     restart: unless-stopped
