@@ -19,10 +19,10 @@ public class Patient {
     @Id
     private String id;
     private String name;
-    
+
     @Indexed(unique = true)
     private String email;
-    
+
     private String password;
     private String phone;
     private Integer age;
