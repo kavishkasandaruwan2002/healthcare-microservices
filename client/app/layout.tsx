@@ -1,13 +1,14 @@
 import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
+import { Outfit } from 'next/font/google'
 import './globals.css'
-import { Toaster } from 'react-hot-toast'
+import Providers from '@/components/Providers'
 
-const inter = Inter({ subsets: ['latin'] })
+const outfit = Outfit({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'Smart Healthcare Platform',
-  description: 'Telemedicine and Appointment Booking System',
+  title: 'Smart Healthcare Platform | AI-Powered Virtual Care',
+  description: 'Book appointments, consult with doctors, and manage your health records in a futuristic, secure platform.',
+  keywords: ['healthcare', 'telemedicine', 'appointment booking', 'AI symptom checker'],
 }
 
 export default function RootLayout({
@@ -16,10 +17,13 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en">
-      <body className={`${inter.className} bg-slate-50 text-slate-900 overflow-x-hidden`}>
-        {children}
-        <Toaster position="top-right" />
+    <html lang="en" className="scroll-smooth">
+      <body className={`${outfit.className} antialiased`}>
+        <Providers>
+          <div className="min-h-screen bg-mesh selection:bg-primary-100">
+            {children}
+          </div>
+        </Providers>
       </body>
     </html>
   )
