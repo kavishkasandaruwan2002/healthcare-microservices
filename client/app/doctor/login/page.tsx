@@ -44,7 +44,7 @@ export default function DoctorLoginPage() {
         id: String(doctor.id), // Convert to string
         email: doctor.email,
         name: doctor.name,
-        role: 'ROLE_DOCTOR'
+        role: 'ROLE_DOCTOR' as const
       }
       
       console.log('Setting user data:', userData)

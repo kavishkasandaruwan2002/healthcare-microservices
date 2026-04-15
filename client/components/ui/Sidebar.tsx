@@ -15,7 +15,9 @@ import {
   Menu,
   X,
   Users,
-  User
+  User,
+  Pill,
+  ClipboardList
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/store/authStore";
@@ -34,21 +36,27 @@ export function Sidebar({ role }: SidebarProps) {
     PATIENT: [
       { name: "Dashboard", href: "/patient/dashboard", icon: <LayoutDashboard /> },
       { name: "Appointments", href: "/patient/appointments", icon: <Calendar /> },
-      { name: "Symptom Checker", href: "/patient/symptoms", icon: <Activity /> },
-      { name: "Telemedicine", href: "/telemedicine", icon: <Video /> },
+      { name: "Prescriptions", href: "/patient/prescriptions", icon: <Pill /> },
       { name: "Medical Records", href: "/patient/records", icon: <FileText /> },
+      { name: "Telemedicine", href: "/telemedicine", icon: <Video /> },
       { name: "Messages", href: "/patient/messages", icon: <MessageSquare /> },
     ],
     DOCTOR: [
-      { name: "Overview", href: "/doctor/dashboard", icon: <LayoutDashboard /> },
+      { name: "Dashboard", href: "/doctor/dashboard", icon: <LayoutDashboard /> },
+      { name: "Appointments", href: "/doctor/appointments", icon: <ClipboardList /> },
       { name: "Schedule", href: "/doctor/schedule", icon: <Calendar /> },
+      { name: "Availability", href: "/doctor/availability", icon: <Clock className="w-5 h-5" /> },
+      { name: "Prescriptions", href: "/doctor/prescriptions", icon: <Pill /> },
       { name: "Patients", href: "/doctor/patients", icon: <Users /> },
       { name: "Consultations", href: "/doctor/consultations", icon: <Video /> },
+      { name: "Messages", href: "/doctor/messages", icon: <MessageSquare /> },
+      { name: "Profile", href: "/doctor/profile", icon: <User /> },
     ],
     ADMIN: [
-      { name: "Analytics", href: "/admin/dashboard", icon: <LayoutDashboard /> },
+      { name: "Dashboard", href: "/admin/dashboard", icon: <LayoutDashboard /> },
       { name: "Users", href: "/admin/users", icon: <User /> },
       { name: "Verification", href: "/admin/verify", icon: <Activity /> },
+      { name: "Reports", href: "/admin/reports", icon: <FileText /> },
     ],
   };
 
@@ -73,6 +81,7 @@ export function Sidebar({ role }: SidebarProps) {
         )}
       >
         <div className="flex h-full flex-col p-4">
+          {/* Logo */}
           <div className="mb-10 flex items-center gap-3 px-2">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-600 text-white shadow-lg">
               <Activity className="h-6 w-6" />
@@ -88,6 +97,7 @@ export function Sidebar({ role }: SidebarProps) {
             )}
           </div>
 
+          {/* Navigation */}
           <nav className="flex-1 space-y-1">
             {currentMenu.map((item) => {
               const isActive = pathname === item.href;
@@ -122,6 +132,7 @@ export function Sidebar({ role }: SidebarProps) {
             })}
           </nav>
 
+          {/* Footer */}
           <div className="pt-4 mt-auto border-t border-slate-100">
             <Link href="/settings">
               <div className="flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold text-slate-500 hover:bg-slate-50 hover:text-slate-900 transition-all">
@@ -142,3 +153,6 @@ export function Sidebar({ role }: SidebarProps) {
     </>
   );
 }
+
+// Import Clock icon
+import { Clock } from "lucide-react";

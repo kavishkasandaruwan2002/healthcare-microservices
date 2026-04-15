@@ -15,7 +15,6 @@ import {
   Calendar,
   HeartPulse,
   Plus,
-  Slack,
   Zap,
   Activity,
   ShieldCheck,
