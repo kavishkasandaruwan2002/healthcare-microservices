@@ -8,15 +8,15 @@ import api from '@/services/api'
 import { Sidebar } from '@/components/ui/Sidebar'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { AnimatedButton } from '@/components/ui/AnimatedButton'
-import { 
-  Calendar, 
-  Clock, 
-  Search, 
-  User, 
-  Star, 
-  MapPin, 
-  Video, 
-  CheckCircle, 
+import {
+  Calendar,
+  Clock,
+  Search,
+  User,
+  Star,
+  MapPin,
+  Video,
+  CheckCircle,
   ChevronRight,
   TrendingUp,
   Stethoscope,
@@ -36,35 +36,35 @@ interface Doctor {
 }
 
 const mockDoctors: Doctor[] = [
-  { 
-    id: '1', 
-    name: 'Dr. Sarah Wilson', 
-    specialization: 'Cardiologist', 
-    rating: 4.9, 
+  {
+    id: '1',
+    name: 'Dr. Sarah Wilson',
+    specialization: 'Cardiologist',
+    rating: 4.9,
     location: 'Virtual / New York',
     image: 'https://images.unsplash.com/photo-1551836022-d5d88e9218df?auto=format&fit=crop&q=80&w=400&h=300'
   },
-  { 
-    id: '2', 
-    name: 'Dr. Michael Chen', 
-    specialization: 'Neurologist', 
-    rating: 4.8, 
+  {
+    id: '2',
+    name: 'Dr. Michael Chen',
+    specialization: 'Neurologist',
+    rating: 4.8,
     location: 'Virtual / Chicago',
     image: 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&q=80&w=400&h=300'
   },
-  { 
-    id: '3', 
-    name: 'Dr. Elena Rodriguez', 
-    specialization: 'Dermatologist', 
-    rating: 4.9, 
+  {
+    id: '3',
+    name: 'Dr. Elena Rodriguez',
+    specialization: 'Dermatologist',
+    rating: 4.9,
     location: 'Virtual / Miami',
     image: 'https://images.unsplash.com/photo-1594824476967-48c8b964273f?auto=format&fit=crop&q=80&w=400&h=300'
   },
-  { 
-    id: '4', 
-    name: 'Dr. David Kim', 
-    specialization: 'Pediatrician', 
-    rating: 4.7, 
+  {
+    id: '4',
+    name: 'Dr. David Kim',
+    specialization: 'Pediatrician',
+    rating: 4.7,
     location: 'Virtual / Los Angeles',
     image: 'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?auto=format&fit=crop&q=80&w=400&h=300'
   },
@@ -73,7 +73,7 @@ const mockDoctors: Doctor[] = [
 export default function PatientAppointments() {
   const { user, isAuthenticated } = useAuthStore()
   const router = useRouter()
-  
+
   const [step, setStep] = useState(1)
   const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null)
   const [selectedDate, setSelectedDate] = useState('')
@@ -100,7 +100,7 @@ export default function PatientAppointments() {
         time: selectedTime,
         reason: 'General Consultation'
       })
-      
+
       setStep(4) // Success step
       toast.success('Appointment booked successfully!')
     } catch (err) {
@@ -121,7 +121,7 @@ export default function PatientAppointments() {
   return (
     <div className="flex min-h-screen bg-slate-50">
       <Sidebar role="PATIENT" />
-      
+
       <main className="flex-1 lg:ml-[80px] xl:ml-[280px] p-4 md:p-8 pt-20 lg:pt-8 transition-all duration-300">
         {/* Header */}
         <header className="mb-10 flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
@@ -142,7 +142,7 @@ export default function PatientAppointments() {
               <div key={s.number} className="flex items-center gap-2">
                 <div className={cn(
                   "flex h-8 w-8 items-center justify-center rounded-xl text-xs font-black transition-all",
-                  step === s.number ? "bg-primary-600 text-white shadow-lg" : 
+                  step === s.number ? "bg-primary-600 text-white shadow-lg" :
                   step > s.number ? "bg-emerald-500 text-white" : "bg-slate-100 text-slate-400"
                 )}>
                   {step > s.number ? <CheckCircle className="h-4 w-4" /> : s.number}
@@ -170,9 +170,9 @@ export default function PatientAppointments() {
               <div className="flex flex-col md:flex-row gap-4">
                 <div className="relative flex-1">
                   <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
-                  <input 
-                    type="text" 
-                    placeholder="Search by name, specialization, or condition..." 
+                  <input
+                    type="text"
+                    placeholder="Search by name, specialization, or condition..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="h-14 w-full rounded-2xl border border-slate-200 bg-white pl-12 pr-4 text-sm font-bold outline-none transition-all focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 placeholder:font-normal"
@@ -192,7 +192,7 @@ export default function PatientAppointments() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: i * 0.05 }}
                   >
-                    <GlassCard 
+                    <GlassCard
                       className={cn(
                         "group cursor-pointer border-2 transition-all p-0 overflow-hidden",
                         selectedDoctor?.id === doc.id ? "border-primary-500 ring-4 ring-primary-500/10 shadow-xl" : "border-transparent hover:border-primary-200 hover:shadow-lg"
@@ -200,12 +200,12 @@ export default function PatientAppointments() {
                       onClick={() => setSelectedDoctor(doc)}
                     >
                       <div className="aspect-[4/3] bg-slate-100 flex items-center justify-center overflow-hidden border-b border-slate-50 relative">
-                        <img 
-                          src={doc.image} 
-                          alt={doc.name} 
-                          className="h-full w-full object-cover group-hover:scale-110 transition-transform duration-700" 
+                        <img
+                          src={doc.image}
+                          alt={doc.name}
+                          className="h-full w-full object-cover group-hover:scale-110 transition-transform duration-700"
                         />
-                        <div className="absolute inset-0 bg-linear-to-t from-slate-900/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-slate-900/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                       </div>
                       <div className="p-6">
                         <div className="mb-2 flex items-center justify-between">
@@ -220,8 +220,8 @@ export default function PatientAppointments() {
                         <p className="flex items-center gap-1.5 text-xs font-bold text-slate-400 mb-6 italic">
                           <MapPin className="h-3 w-3" /> {doc.location}
                         </p>
-                        <AnimatedButton 
-                          variant={selectedDoctor?.id === doc.id ? "primary" : "outline"} 
+                        <AnimatedButton
+                          variant={selectedDoctor?.id === doc.id ? "primary" : "outline"}
                           className="w-full h-11"
                           onClick={() => { setSelectedDoctor(doc); setStep(2); }}
                         >
@@ -243,7 +243,7 @@ export default function PatientAppointments() {
               exit={{ opacity: 0, x: -50 }}
               className="max-w-4xl mx-auto space-y-10"
             >
-              <button 
+              <button
                 onClick={() => setStep(1)}
                 className="flex items-center gap-2 text-sm font-black text-slate-400 hover:text-slate-900 transition-colors uppercase tracking-widest"
               >
@@ -290,8 +290,8 @@ export default function PatientAppointments() {
               </div>
 
               <div className="pt-10 flex justify-end">
-                <AnimatedButton 
-                  size="xl" 
+                <AnimatedButton
+                  size="xl"
                   className={cn("px-12", (!selectedDate || !selectedTime) ? "opacity-50 pointer-events-none" : "")}
                   onClick={() => setStep(3)}
                 >
@@ -309,10 +309,10 @@ export default function PatientAppointments() {
               exit={{ opacity: 0, scale: 0.9 }}
               className="max-w-xl mx-auto"
             >
-              <GlassCard className="p-10 border-none shadow-2xl relative overflow-hidden bg-white/80 backdrop-blur-xl">
+              <GlassCard className="p-10 border-none shadow-2xl relative overflow-hidden">
                 <div className="relative z-10">
                   <h3 className="text-3xl font-black text-slate-900 mb-8 border-b border-slate-100 pb-6 uppercase tracking-tighter">Confirmation</h3>
-                  
+
                   <div className="space-y-6 mb-10">
                     <div className="flex items-center gap-4">
                       <div className="h-14 w-14 rounded-2xl bg-slate-100 flex items-center justify-center text-primary-600 shadow-inner">
@@ -344,16 +344,16 @@ export default function PatientAppointments() {
                     </div>
                   </div>
 
-                  <AnimatedButton 
-                    size="xl" 
+                  <AnimatedButton
+                    size="xl"
                     className="w-full h-16 bg-slate-900 text-white shadow-xl shadow-slate-900/20"
                     loading={isBooking}
                     onClick={handleBooking}
                   >
                     Confirm & Complete Booking
                   </AnimatedButton>
-                  
-                  <button 
+
+                  <button
                     onClick={() => setStep(2)}
                     className="w-full mt-6 text-xs font-black text-slate-400 uppercase tracking-[0.2em] hover:text-slate-900 transition-colors"
                   >
@@ -374,7 +374,7 @@ export default function PatientAppointments() {
               className="max-w-lg mx-auto text-center"
             >
               <div className="relative mb-10 inline-block">
-                <motion.div 
+                <motion.div
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
                   transition={{ type: "spring", damping: 10 }}
@@ -386,7 +386,7 @@ export default function PatientAppointments() {
               </div>
 
               <h2 className="text-4xl font-black text-slate-900 mb-4 tracking-tight leading-tight">Confirmed! Your path to better health begins.</h2>
-              <p className="text-slate-500 text-lg mb-12 font-medium italic">We&apos;ve sent a calendar invitation and encrypted meeting details to your email <span className="text-primary-600 font-bold">{user?.email}</span>.</p>
+              <p className="text-slate-500 text-lg mb-12 font-medium italic">We've sent a calendar invitation and encrypted meeting details to your email <span className="text-primary-600 font-bold">{user?.email}</span>.</p>
 
               <div className="flex flex-col gap-4">
                 <AnimatedButton size="xl" onClick={() => router.push('/patient/dashboard')}>

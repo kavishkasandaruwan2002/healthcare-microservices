@@ -74,7 +74,16 @@ export function Navbar() {
     router.refresh();
   };
 
-  const dashboardUrl = user?.role?.includes('PATIENT') || user?.role === 'PATIENT' ? '/patient/dashboard' : '/doctor/dashboard';
+  const getDashboardUrl = () => {
+    if (!user?.role) return '/';
+    const role = user.role.toUpperCase();
+    if (role.includes('ADMIN')) return '/admin/dashboard';
+    if (role.includes('DOCTOR')) return '/doctor/dashboard';
+    if (role.includes('PATIENT')) return '/patient/dashboard';
+    return '/';
+  };
+
+  const dashboardUrl = getDashboardUrl();
 
   return (
     <>
@@ -83,8 +92,8 @@ export function Navbar() {
         animate={{ y: 0, opacity: 1 }}
         className={cn(
           "fixed top-0 left-0 right-0 z-50 transition-all duration-500 ease-in-out px-4 md:px-8",
-          isScrolled 
-            ? "py-3 bg-white/80 backdrop-blur-2xl border-b border-slate-200/50 shadow-sm" 
+          isScrolled
+            ? "py-3 bg-white/80 backdrop-blur-2xl border-b border-slate-200/50 shadow-sm"
             : "py-6 bg-transparent"
         )}
       >
@@ -104,19 +113,19 @@ export function Navbar() {
             {navItems.map((item) => {
               const isActive = activeSection === item.href || (pathname === item.href && !item.href.startsWith("#"));
               return (
-                <Link 
-                  key={item.label} 
+                <Link
+                  key={item.label}
                   href={item.href}
                   className={cn(
                     "relative px-5 py-2 text-sm font-semibold rounded-xl transition-all duration-300",
-                    isActive 
-                      ? "text-primary-600 bg-white shadow-sm" 
+                    isActive
+                      ? "text-primary-600 bg-white shadow-sm"
                       : "text-slate-500 hover:text-slate-900 hover:bg-white/50"
                   )}
                 >
                   {item.label}
                   {isActive && (
-                    <motion.div 
+                    <motion.div
                       layoutId="activeNav"
                       className="absolute inset-0 rounded-xl border border-primary-100 pointer-events-none"
                       initial={false}
@@ -164,7 +173,7 @@ export function Navbar() {
           </div>
 
           {/* Mobile Menu Toggle */}
-          <button 
+          <button
             className="lg:hidden p-2 rounded-xl bg-slate-100 text-slate-900 hover:bg-slate-200 transition-colors"
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             aria-label="Toggle menu"
@@ -174,7 +183,7 @@ export function Navbar() {
         </div>
 
         {/* Scroll Progress Bar - More subtle */}
-        <motion.div 
+        <motion.div
           className="absolute bottom-0 left-0 h-[2px] right-0 bg-primary-600/30"
           style={{ scaleX, transformOrigin: "0%" }}
         />
@@ -204,11 +213,11 @@ export function Navbar() {
                   <X size={20} />
                 </button>
               </div>
-              
+
               <div className="flex-1 overflow-y-auto p-6 space-y-2">
                 {navItems.map((item) => (
-                  <Link 
-                    key={item.label} 
+                  <Link
+                    key={item.label}
                     href={item.href}
                     className="flex items-center justify-between p-4 rounded-2xl text-lg font-bold text-slate-700 hover:bg-primary-50 hover:text-primary-600 transition-all"
                     onClick={() => setIsMobileMenuOpen(false)}
@@ -217,9 +226,9 @@ export function Navbar() {
                     <ArrowRight size={18} className="opacity-0 group-hover:opacity-100" />
                   </Link>
                 ))}
-                
+
                 <div className="h-[1px] bg-slate-100 my-4" />
-                
+
                 {isAuthenticated ? (
                   <div className="space-y-3">
                     <Link href={dashboardUrl} onClick={() => setIsMobileMenuOpen(false)}>
@@ -228,7 +237,7 @@ export function Navbar() {
                         <span>Go to Dashboard</span>
                       </div>
                     </Link>
-                    <button 
+                    <button
                       onClick={handleLogout}
                       className="flex items-center gap-4 w-full p-4 rounded-2xl bg-rose-50 text-rose-600 font-bold hover:bg-rose-100 transition-colors"
                     >
@@ -251,7 +260,7 @@ export function Navbar() {
                   </div>
                 )}
               </div>
-              
+
               <div className="p-8 border-t border-slate-100">
                 <p className="text-xs text-slate-400 text-center font-medium italic">
                   HealthPulse Medical Network © 2026

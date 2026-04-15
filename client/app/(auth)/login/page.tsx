@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { toast } from 'react-hot-toast';
@@ -12,66 +12,94 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Label } from "@/components/ui/Label";
 import { Globe, Apple, ArrowRight, ShieldCheck, HeartPulse, Mail, Lock } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export default function LoginPage() {
+  const { login: setLogin, isAuthenticated, user } = useAuthStore();
   const router = useRouter();
-  const setLogin = useAuthStore(state => state.login);
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [role, setRole] = useState('PATIENT'); // PATIENT, DOCTOR, ADMIN
   const [loading, setLoading] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (mounted && isAuthenticated && user) {
+      const userRole = user.role?.toUpperCase() || '';
+      console.log("Current authenticated role:", userRole);
+      if (userRole.includes('ADMIN')) router.push('/admin/dashboard');
+      else if (userRole.includes('DOCTOR')) router.push('/doctor/dashboard');
+      else if (userRole.includes('PATIENT')) router.push('/patient/dashboard');
+    }
+  }, [isAuthenticated, user, router, mounted]);
 
   const images = [
     "https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=1200&auto=format&fit=crop&q=80",
     "https://images.unsplash.com/photo-1579684385127-1ef15d508118?w=1200&auto=format&fit=crop&q=80",
-    "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=1200&auto=format&fit=crop&q=80",
-    "https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=1200&auto=format&fit=crop&q=80",
+    "https://images.unsplash.com/photo-1551076805-e1869033e561?w=1200&auto=format&fit=crop&q=80",
   ];
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      setLoading(true);
-      const res = await api.post('/patients/login', { email, password });
-      const { token, user } = res.data;
-      setLogin(user, token);
-      toast.success('Welcome back to HealthCare!');
-      
-      const role = user.role?.toUpperCase() || '';
-      if (role.includes('PATIENT')) router.push('/patient/dashboard');
-      else if (role.includes('DOCTOR')) router.push('/doctor/dashboard');
-      else if (role.includes('ADMIN')) router.push('/admin/dashboard');
-      else router.push('/');
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Invalid email or password');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const containerVariants: any = {
+  const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
       transition: {
         staggerChildren: 0.1,
-        delayChildren: 0.3,
-      },
-    },
+        delayChildren: 0.3
+      }
+    }
   };
 
-  const itemVariants: any = {
+  const itemVariants = {
     hidden: { y: 20, opacity: 0 },
-    visible: {
-      y: 0,
-      opacity: 1,
-      transition: {
-        type: "spring",
-        stiffness: 120,
-        damping: 14,
-      },
-    },
+    visible: { y: 0, opacity: 1 }
   };
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      setLoading(true);
+      // Choose endpoint based on selected role
+      const endpoint = role === 'DOCTOR' ? '/doctors/login' : '/patients/login';
+      console.log(`Attempting login for ${role} at ${endpoint}`);
+      
+      const res = await api.post(endpoint, { email, password });
+      
+      // Normalize response structure (patient returns 'user', doctor returns 'doctor')
+      const token = res.data.token;
+      const userData = res.data.user || res.data.doctor;
+      
+      if (!userData) {
+        console.error("Auth response missing user data:", res.data);
+        throw new Error("User data not found in server response");
+      }
+      
+      // Ensure role is preserved if not present in normalized data
+      if (!userData.role) userData.role = role === 'ADMIN' ? 'ROLE_ADMIN' : role === 'DOCTOR' ? 'ROLE_DOCTOR' : 'ROLE_PATIENT';
+      
+      setLogin(userData, token);
+      toast.success('Authentication successful!');
+      
+      const userRole = (userData.role || '').toUpperCase();
+      if (userRole.includes('ADMIN')) router.push('/admin/dashboard');
+      else if (userRole.includes('DOCTOR')) router.push('/doctor/dashboard');
+      else if (userRole.includes('PATIENT')) router.push('/patient/dashboard');
+      else router.push('/');
+    } catch (err: any) {
+      console.error("Login Error:", err);
+      const errorMsg = err.response?.data?.message || err.message || 'Invalid email or password';
+      toast.error(errorMsg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!mounted) return null;
 
   return (
     <div className="w-full min-h-screen flex items-center justify-center bg-slate-50 p-6">
@@ -79,7 +107,7 @@ export default function LoginPage() {
         className="w-full max-w-6xl h-[750px] grid grid-cols-1 lg:grid-cols-2 rounded-[2.5rem] overflow-hidden shadow-[0_32px_64px_-12px_rgba(0,0,0,0.14)] border border-white bg-white"
         initial={{ opacity: 0, y: 40, scale: 0.98 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+        transition={{ duration: 0.8, ease: "easeOut" }}
       >
         {/* Left side: Premium Image Slider Showcase */}
         <div className="hidden lg:block relative">
@@ -89,18 +117,15 @@ export default function LoginPage() {
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 1, duration: 1 }}
-            className="absolute top-1/2 left-12 -translate-y-1/2 z-20 max-w-sm"
+            className="absolute top-12 left-12 z-20"
           >
-            <div className="p-8 rounded-[2rem] bg-white/10 backdrop-blur-2xl border border-white/20 shadow-2xl">
-              <div className="h-14 w-14 rounded-2xl bg-primary-600 flex items-center justify-center mb-6 shadow-lg shadow-primary-600/30">
-                <ShieldCheck className="h-8 w-8 text-white" />
-              </div>
-              <h2 className="text-3xl font-black text-white tracking-tight leading-tight">
-                Your Health, <br /> Securely Managed.
-              </h2>
-              <p className="text-primary-50/80 text-sm font-medium mt-4 leading-relaxed">
-                Experience the next generation of clinical data management with military-grade encryption.
-              </p>
+            <div className="bg-white/10 backdrop-blur-md border border-white/20 p-6 rounded-[2rem] max-w-xs shadow-2xl">
+                <div className="flex items-center gap-2 mb-4 text-emerald-400">
+                    <ShieldCheck className="h-5 w-5" />
+                    <span className="text-[10px] font-black uppercase tracking-widest text-white">Trust Assurance</span>
+                </div>
+                <h4 className="text-xl font-bold text-white mb-2 leading-tight">ISO 27001 Certified Health Platform</h4>
+                <p className="text-xs text-white/60 leading-relaxed font-medium">Your medical records are encrypted with military-grade AES-256 protocols.</p>
             </div>
           </motion.div>
 
@@ -116,8 +141,8 @@ export default function LoginPage() {
           </div>
         </div>
 
-        {/* Right side: Authentication Form */}
-        <div className="w-full h-full bg-white flex flex-col items-center justify-center p-12 lg:p-20 relative overflow-hidden">
+        {/* Right side: Modern Auth Form */}
+        <div className="relative flex items-center justify-center p-8 md:p-16 bg-white">
           <div className="absolute -top-[10%] -right-[10%] h-[40%] w-[40%] rounded-full bg-primary-500/5 blur-[100px]" />
           <div className="absolute -bottom-[10%] -left-[10%] h-[40%] w-[40%] rounded-full bg-accent-500/5 blur-[100px]" />
 
@@ -139,33 +164,41 @@ export default function LoginPage() {
                   Welcome Back.
                 </h1>
                 <p className="text-slate-500 font-medium mb-10">
-                  Access your personalized health dashboard and consult with your specialists.
+                  Select your role and authenticate to access your specialized healthcare portal.
                 </p>
+            </motion.div>
+
+            {/* Role Toggle */}
+            <motion.div variants={itemVariants} className="flex p-1 bg-slate-100 rounded-2xl mb-8">
+              {['PATIENT', 'DOCTOR', 'ADMIN'].map((r) => (
+                <button
+                  key={r}
+                  type="button"
+                  onClick={() => setRole(r)}
+                  className={cn(
+                    "flex-1 py-2 text-xs font-black uppercase tracking-wider rounded-xl transition-all",
+                    role === r 
+                      ? "bg-white text-primary-600 shadow-sm" 
+                      : "text-slate-400 hover:text-slate-600"
+                  )}
+                >
+                  {r}
+                </button>
+              ))}
             </motion.div>
 
             <motion.div variants={itemVariants} className="grid grid-cols-2 gap-4 mb-8">
               <Button variant="outline" type="button" className="w-full group">
                 <Globe className="mr-3 h-5 w-5 text-slate-400 group-hover:text-primary-600 transition-colors" />
-                Google
+                <span className="text-xs font-bold uppercase tracking-wider">Web Portal</span>
               </Button>
               <Button variant="outline" type="button" className="w-full group">
-                <Apple className="mr-3 h-5 w-5 text-slate-400 group-hover:text-slate-900 transition-colors" />
-                Apple
+                <Apple className="mr-3 h-5 w-5 text-slate-400 group-hover:text-primary-600 transition-colors" />
+                <span className="text-xs font-bold uppercase tracking-wider">iOS App</span>
               </Button>
             </motion.div>
 
-            <motion.div variants={itemVariants} className="relative mb-8">
-              <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t border-slate-100" />
-              </div>
-              <div className="relative flex justify-center text-[10px] font-black uppercase tracking-[0.2em]">
-                <span className="bg-white px-4 text-slate-400">
-                  Secure Credentials
-                </span>
-              </div>
-            </motion.div>
-
-            <motion.form variants={itemVariants} onSubmit={handleLogin} className="space-y-6">
+            <form onSubmit={handleLogin} className="space-y-6">
               <div className="space-y-3">
                 <Label htmlFor="email">Email Address</Label>
                 <div className="relative">
@@ -206,12 +239,12 @@ export default function LoginPage() {
                 {loading ? "Authenticating..." : "Authenticate Securely"}
                 {!loading && <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />}
               </Button>
-            </motion.form>
+            </form>
 
-            <motion.p variants={itemVariants} className="text-center text-sm font-medium text-slate-500 mt-10">
+            <motion.p variants={itemVariants} className="text-center mt-10 text-sm font-medium text-slate-400">
               New to HealthPulse?{" "}
-              <Link href="/register" className="font-bold text-primary-600 hover:text-primary-700 transition-colors">
-                Initialize Account
+              <Link href="/register" className="text-primary-600 font-bold hover:text-primary-700 transition-colors">
+                Create Secure Account
               </Link>
             </motion.p>
           </motion.div>

@@ -1,9 +1,9 @@
 "use client"
 
+import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
-import { useEffect } from 'react'
-import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/store/authStore'
 import { Navbar } from '@/components/Navbar'
 import { PulseFitHero } from "@/components/ui/pulse-fit-hero"
@@ -11,7 +11,6 @@ import { BentoFeatures } from "@/components/sections/BentoFeatures"
 import { GlassCard } from '@/components/ui/GlassCard'
 import { AnimatedButton } from '@/components/ui/AnimatedButton'
 import { Badge } from '@/components/ui/Badge'
-import { Button } from '@/components/ui/Button'
 import { cn } from '@/lib/utils'
 import { 
   Users, 
@@ -35,21 +34,35 @@ import {
 export default function LandingPage() {
   const router = useRouter()
   const { user, isAuthenticated } = useAuthStore()
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   useEffect(() => {
     if (isAuthenticated && user) {
-      if (user.role === 'ROLE_ADMIN' || user.role === 'ADMIN') {
+      const role = user.role?.toUpperCase() || ''
+      if (role.includes('ADMIN')) {
         router.push('/admin/dashboard')
-      } else if (user.role === 'ROLE_DOCTOR' || user.role === 'DOCTOR') {
+      } else if (role.includes('DOCTOR')) {
         router.push('/doctor/dashboard')
-      } else if (user.role === 'ROLE_PATIENT' || user.role === 'PATIENT') {
+      } else if (role.includes('PATIENT')) {
         router.push('/patient/dashboard')
       }
     }
   }, [isAuthenticated, user, router])
 
-  if (isAuthenticated) {
-    return null
+  // Show a loading state during redirection or the landing page for guests
+  if (mounted && isAuthenticated && user) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-white">
+        <div className="flex flex-col items-center gap-4">
+          <div className="h-12 w-12 animate-spin rounded-full border-4 border-primary-600 border-t-transparent" />
+          <p className="text-sm font-bold text-slate-500 animate-pulse">Redirecting to your command center...</p>
+        </div>
+      </div>
+    )
   }
 
   return (

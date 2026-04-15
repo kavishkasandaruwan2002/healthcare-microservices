@@ -30,8 +30,8 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
-      // Token expired or unauthorized
+    if (error.response?.status === 401 && !error.config.url?.endsWith('login')) {
+      // Token expired or unauthorized (but not a failed login attempt)
       if (typeof window !== 'undefined') {
         const authStore = useAuthStore.getState();
         authStore.logout();
