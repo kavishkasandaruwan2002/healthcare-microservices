@@ -35,46 +35,14 @@ interface Doctor {
   image: string;
 }
 
-const mockDoctors: Doctor[] = [
-  {
-    id: '1',
-    name: 'Dr. Sarah Wilson',
-    specialization: 'Cardiologist',
-    rating: 4.9,
-    location: 'Virtual / New York',
-    image: 'https://images.unsplash.com/photo-1551836022-d5d88e9218df?auto=format&fit=crop&q=80&w=400&h=300'
-  },
-  {
-    id: '2',
-    name: 'Dr. Michael Chen',
-    specialization: 'Neurologist',
-    rating: 4.8,
-    location: 'Virtual / Chicago',
-    image: 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&q=80&w=400&h=300'
-  },
-  {
-    id: '3',
-    name: 'Dr. Elena Rodriguez',
-    specialization: 'Dermatologist',
-    rating: 4.9,
-    location: 'Virtual / Miami',
-    image: 'https://images.unsplash.com/photo-1594824476967-48c8b964273f?auto=format&fit=crop&q=80&w=400&h=300'
-  },
-  {
-    id: '4',
-    name: 'Dr. David Kim',
-    specialization: 'Pediatrician',
-    rating: 4.7,
-    location: 'Virtual / Los Angeles',
-    image: 'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?auto=format&fit=crop&q=80&w=400&h=300'
-  },
-]
 
 export default function PatientAppointments() {
   const { user, isAuthenticated } = useAuthStore()
   const router = useRouter()
 
   const [step, setStep] = useState(1)
+  const [doctors, setDoctors] = useState<Doctor[]>([])
+  const [loadingDoctors, setLoadingDoctors] = useState(true)
   const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null)
   const [selectedDate, setSelectedDate] = useState('')
   const [selectedTime, setSelectedTime] = useState('')
@@ -84,8 +52,31 @@ export default function PatientAppointments() {
   useEffect(() => {
     if (!isAuthenticated) {
       router.push('/login')
+    } else {
+      fetchDoctors()
     }
   }, [isAuthenticated, router])
+
+  const fetchDoctors = async () => {
+    try {
+      setLoadingDoctors(true)
+      const res = await api.get('/doctors/verified')
+      const formattedDoctors = res.data.map((doc: any) => ({
+        id: doc.id,
+        name: doc.name.startsWith('Dr.') ? doc.name : `Dr. ${doc.name}`,
+        specialization: doc.specialization || 'General Specialist',
+        rating: 4.8 + (Math.random() * 0.2), // Simulated rating for registered doctors
+        location: doc.hospitalAffiliation || 'Virtual Clinic',
+        image: doc.image || `https://images.unsplash.com/photo-${doc.id?.length > 10 ? '1612349317150-e413f6a5b16d' : '1551836022-d5d88e9218df'}?auto=format&fit=crop&q=80&w=400&h=300`
+      }))
+      setDoctors(formattedDoctors)
+    } catch (err) {
+      console.error('Failed to fetch doctors:', err)
+      toast.error('Unable to load specialist directory')
+    } finally {
+      setLoadingDoctors(false)
+    }
+  }
 
   if (!isAuthenticated) return null
 
@@ -143,7 +134,7 @@ export default function PatientAppointments() {
                 <div className={cn(
                   "flex h-8 w-8 items-center justify-center rounded-xl text-xs font-black transition-all",
                   step === s.number ? "bg-primary-600 text-white shadow-lg" :
-                  step > s.number ? "bg-emerald-500 text-white" : "bg-slate-100 text-slate-400"
+                    step > s.number ? "bg-emerald-500 text-white" : "bg-slate-100 text-slate-400"
                 )}>
                   {step > s.number ? <CheckCircle className="h-4 w-4" /> : s.number}
                 </div>
@@ -185,52 +176,69 @@ export default function PatientAppointments() {
 
               {/* Grid */}
               <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                {mockDoctors.map((doc, i) => (
-                  <motion.div
-                    key={doc.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.05 }}
-                  >
-                    <GlassCard
-                      className={cn(
-                        "group cursor-pointer border-2 transition-all p-0 overflow-hidden",
-                        selectedDoctor?.id === doc.id ? "border-primary-500 ring-4 ring-primary-500/10 shadow-xl" : "border-transparent hover:border-primary-200 hover:shadow-lg"
-                      )}
-                      onClick={() => setSelectedDoctor(doc)}
-                    >
-                      <div className="aspect-[4/3] bg-slate-100 flex items-center justify-center overflow-hidden border-b border-slate-50 relative">
-                        <img
-                          src={doc.image}
-                          alt={doc.name}
-                          className="h-full w-full object-cover group-hover:scale-110 transition-transform duration-700"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-slate-900/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                      </div>
-                      <div className="p-6">
-                        <div className="mb-2 flex items-center justify-between">
-                          <span className="text-[10px] font-black uppercase tracking-widest text-primary-600 bg-primary-50 px-2 py-0.5 rounded-lg border border-primary-100">
-                            {doc.specialization}
-                          </span>
-                          <div className="flex items-center gap-1 text-xs font-black text-amber-500">
-                            <Star className="h-3 w-3 fill-amber-500" /> {doc.rating}
-                          </div>
-                        </div>
-                        <h3 className="text-lg font-black text-slate-900 leading-tight mb-1">{doc.name}</h3>
-                        <p className="flex items-center gap-1.5 text-xs font-bold text-slate-400 mb-6 italic">
-                          <MapPin className="h-3 w-3" /> {doc.location}
-                        </p>
-                        <AnimatedButton
-                          variant={selectedDoctor?.id === doc.id ? "primary" : "outline"}
-                          className="w-full h-11"
-                          onClick={() => { setSelectedDoctor(doc); setStep(2); }}
+                {loadingDoctors ? (
+                  // Skeleton Loading
+                  [1, 2, 3, 4].map((i) => (
+                    <div key={i} className="h-[400px] w-full bg-slate-100 rounded-3xl animate-pulse" />
+                  ))
+                ) : doctors.length > 0 ? (
+                  doctors
+                    .filter(doc => 
+                      doc.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                      doc.specialization.toLowerCase().includes(searchQuery.toLowerCase())
+                    )
+                    .map((doc, i) => (
+                      <motion.div
+                        key={doc.id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: i * 0.05 }}
+                      >
+                        <GlassCard
+                          className={cn(
+                            "group cursor-pointer border-2 transition-all p-0 overflow-hidden",
+                            selectedDoctor?.id === doc.id ? "border-primary-500 ring-4 ring-primary-500/10 shadow-xl" : "border-transparent hover:border-primary-200 hover:shadow-lg"
+                          )}
+                          onClick={() => setSelectedDoctor(doc)}
                         >
-                          Select Doctor
-                        </AnimatedButton>
-                      </div>
-                    </GlassCard>
-                  </motion.div>
-                ))}
+                          <div className="aspect-[4/3] bg-slate-100 flex items-center justify-center overflow-hidden border-b border-slate-50 relative">
+                            <img
+                              src={doc.image}
+                              alt={doc.name}
+                              className="h-full w-full object-cover group-hover:scale-110 transition-transform duration-700"
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-t from-slate-900/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                          </div>
+                          <div className="p-6">
+                            <div className="mb-2 flex items-center justify-between">
+                              <span className="text-[10px] font-black uppercase tracking-widest text-primary-600 bg-primary-50 px-2 py-0.5 rounded-lg border border-primary-100">
+                                {doc.specialization}
+                              </span>
+                              <div className="flex items-center gap-1 text-xs font-black text-amber-500">
+                                <Star className="h-3 w-3 fill-amber-500" /> {doc.rating.toFixed(1)}
+                              </div>
+                            </div>
+                            <h3 className="text-lg font-black text-slate-900 leading-tight mb-1">{doc.name}</h3>
+                            <p className="flex items-center gap-1.5 text-xs font-bold text-slate-400 mb-6 italic">
+                              <MapPin className="h-3 w-3" /> {doc.location}
+                            </p>
+                            <AnimatedButton
+                              variant={selectedDoctor?.id === doc.id ? "primary" : "outline"}
+                              className="w-full h-11"
+                              onClick={() => { setSelectedDoctor(doc); setStep(2); }}
+                            >
+                              Select Doctor
+                            </AnimatedButton>
+                          </div>
+                        </GlassCard>
+                      </motion.div>
+                    )
+                  )
+                ) : (
+                  <div className="col-span-full py-20 text-center">
+                    <p className="text-slate-500 font-bold italic">No doctors are currently available in your region.</p>
+                  </div>
+                )}
               </div>
             </motion.div>
           )}

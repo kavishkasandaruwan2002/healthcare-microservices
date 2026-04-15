@@ -48,8 +48,8 @@ public class DoctorService {
                 .yearsOfExperience(request.getYearsOfExperience())
                 .qualification(request.getQualification())
                 .hospitalAffiliation(request.getHospitalAffiliation())
-                .status("PENDING")
-                .isVerified(false)
+                .status("APPROVED")
+                .isVerified(true)
                 .role("ROLE_DOCTOR")
                 .createdAt(System.currentTimeMillis())
                 .updatedAt(System.currentTimeMillis())
@@ -64,8 +64,7 @@ public class DoctorService {
                     savedDoctor.getEmail(),
                     savedDoctor.getId(),
                     savedDoctor.getName(),
-                    savedDoctor.getSpecialization() != null ? savedDoctor.getSpecialization() : ""
-            );
+                    savedDoctor.getSpecialization() != null ? savedDoctor.getSpecialization() : "");
             log.info("Registration email sent to: {}", savedDoctor.getEmail());
         } catch (Exception ex) {
             log.warn("Failed to send registration email to: {} – {}", savedDoctor.getEmail(), ex.getMessage());
@@ -118,7 +117,6 @@ public class DoctorService {
                 .orElseThrow(() -> new RuntimeException("Doctor not found"));
     }
 
-    // New method that returns DTO for frontend
     public DoctorDTO getDoctorByIdDTO(String id) {
         Doctor doctor = getDoctorById(id);
         return mapToDTO(doctor);

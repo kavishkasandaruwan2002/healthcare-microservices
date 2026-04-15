@@ -66,7 +66,8 @@ public class DoctorSecurityConfig {
                 .csrf()
                 .disable()
                 .authorizeRequests()
-                .antMatchers("/api/doctors/register", "/api/doctors/login", "/api/doctors/health",
+                .antMatchers("/api/doctors/register", "/api/doctors/login", "/api/doctors/health", "/api/doctors/verified",
+                        "/api/doctors/specialization/**", "/api/doctors/{id}",
                         "/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html")
                 .permitAll()
                 .anyRequest()
