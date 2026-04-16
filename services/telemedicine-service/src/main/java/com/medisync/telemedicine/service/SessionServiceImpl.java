@@ -57,7 +57,17 @@ public class SessionServiceImpl implements SessionService {
 
     @Override public SessionResponse getSession(UUID sessionId, UserPrincipal p){ Session s=getById(sessionId); authorizeAccess(s,p,false); return toResponse(s); }
     @Override public SessionResponse getSessionByAppointmentId(UUID appointmentId, UserPrincipal p){ Session s=sessionRepository.findByAppointmentId(appointmentId).orElseThrow(() -> new SessionNotFoundException("Session not found with appointment id: "+appointmentId)); authorizeAccess(s,p,false); return toResponse(s); }
-    @Override public Page<SessionResponse> getMySessions(UserPrincipal p, SessionStatus status, Pageable pageable){ if(status!=null) return sessionRepository.findByStatus(status,pageable).map(this::toResponse); UUID uid=UUID.fromString(p.getUserId()); return sessionRepository.findByPatientIdOrDoctorId(uid,uid,pageable).map(this::toResponse); }
+    @Override
+    public Page<SessionResponse> getMySessions(UserPrincipal p, SessionStatus status, Pageable pageable){
+        if(p.isAdmin()){
+            if(status != null) {
+                return sessionRepository.findByStatus(status, pageable).map(this::toResponse);
+            }
+            return sessionRepository.findAll(pageable).map(this::toResponse);
+        }
+        UUID uid = UUID.fromString(p.getUserId());
+        return sessionRepository.findByStatusAndParticipant(status, uid, pageable).map(this::toResponse);
+    }
 
     @Override
     @Transactional
