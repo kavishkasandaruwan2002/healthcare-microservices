@@ -105,8 +105,7 @@ services:
       - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE:-docker}
       - EUREKA_SERVER=${EUREKA_SERVER:-http://eureka:8761/eureka/}
     depends_on:
-      eureka:
-        condition: service_healthy
+      - eureka
     networks:
       - healthcare-network
     restart: unless-stopped
@@ -267,8 +266,7 @@ services:
       - NEXT_PUBLIC_API_BASE_URL=http://localhost:8085
       - NEXT_PUBLIC_TELE_API_URL=http://localhost:8084
     depends_on:
-      gateway:
-        condition: service_healthy
+      - gateway
     networks:
       - healthcare-network
     restart: unless-stopped
