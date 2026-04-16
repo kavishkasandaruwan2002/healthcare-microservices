@@ -8,6 +8,11 @@ spring:
     mongodb:
       uri: ${SPRING_DATA_MONGODB_URI:mongodb+srv://Ayodya:Ayodya@cluster0.csn4fag.mongodb.net/HealthCareDB?retryWrites=true&w=majority&appName=Cluster0}
       auto-index-creation: true
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+  data.redis.enabled: false
 
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
@@ -25,6 +30,21 @@ eureka:
   client:
     serviceUrl:
       defaultZone: ${EUREKA_SERVER:http://localhost:8761/eureka/}
+  instance:
+    prefer-ip-address: false
+
+# External Service URLs
+doctor:
+  service:
+    url: ${DOCTOR_SERVICE_URL:http://localhost:8082}
+
+patient:
+  service:
+    url: ${PATIENT_SERVICE_URL:http://localhost:8083}
+
+notification:
+  service:
+    url: ${NOTIFICATION_SERVICE_URL:http://localhost:8080}
 
 resilience4j:
   circuitbreaker:
@@ -54,6 +74,7 @@ logging:
   level:
     org.springframework.data.mongodb.core.MongoTemplate: DEBUG
     com.healthcare.appointment: DEBUG
+    org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping: TRACE
 
 
 

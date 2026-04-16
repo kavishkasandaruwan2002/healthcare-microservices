@@ -3,14 +3,12 @@ package com.healthcare.appointment.dto;
 import lombok.*;
 
 import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.NotNull;
-import java.time.LocalDateTime;
 
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class AppointmentRequest {
+public class AppointmentBookingRequest {
 
     @NotBlank(message = "Patient ID is mandatory")
     private String patientId;
@@ -18,15 +16,14 @@ public class AppointmentRequest {
     @NotBlank(message = "Doctor ID is mandatory")
     private String doctorId;
 
-    @NotNull(message = "Appointment time is mandatory")
-    private LocalDateTime appointmentTime;
+    @NotBlank(message = "Date is mandatory (format: YYYY-MM-DD)")
+    private String date;
 
-    @Builder.Default
-    private int durationMinutes = 30; // Default 30 minutes
+    @NotBlank(message = "Time is mandatory (format: HH:mm)")
+    private String time;
 
     private String reason;
-
-    private String appointmentType; // Optional: IN_PERSON, TELEMEDICINE
+    
+    private String appointmentType; // IN_PERSON or TELEMEDICINE
     private String notes;
 }
-

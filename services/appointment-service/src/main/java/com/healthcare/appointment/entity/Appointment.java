@@ -20,21 +20,25 @@ public class Appointment {
     private String id;
 
     private String patientId;
+    private String patientName;
+    private String patientEmail;
+    private String patientPhone;
 
     private String doctorId;
+    private String doctorName;
+    private String doctorEmail;
+    private String doctorSpecialization;
 
     private LocalDateTime appointmentTime;
-
     private int durationMinutes;
 
     private AppointmentStatus status;
-
     private String reason;
-
+    private String appointmentType; // IN_PERSON or TELEMEDICINE
+    private String notes;
     private String prescription;
 
     private Double cost;
-
     private boolean paid;
 
     @CreatedDate

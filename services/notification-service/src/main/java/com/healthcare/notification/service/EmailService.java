@@ -154,17 +154,33 @@ public class EmailService {
     public void sendPrescriptionIssuedEmail(String recipientEmail, String recipientId,
                                             String doctorId, String patientName,
                                             String medications) {
+        sendPrescriptionIssuedEmail(recipientEmail, recipientId, doctorId, patientName, "", "", "", medications, "", "");
+    }
+
+    /**
+     * Full-detail prescription email (used by JSON body endpoint).
+     */
+    public void sendPrescriptionIssuedEmail(String recipientEmail, String recipientId,
+                                            String doctorId, String patientName,
+                                            String doctorName, String doctorSpecialization,
+                                            String diagnosis, String medications,
+                                            String dosage, String duration) {
+        String effectiveDoctorName = (doctorName != null && !doctorName.isBlank()) ? doctorName : doctorId;
         String html = renderTemplate("email/prescription-issued",
                 ctx -> {
-                    ctx.setVariable("patientName", patientName);
+                    ctx.setVariable("patientName", patientName != null ? patientName : "Patient");
                     ctx.setVariable("medications", medications);
-                    ctx.setVariable("doctorId", doctorId);
+                    ctx.setVariable("doctorName", effectiveDoctorName);
+                    ctx.setVariable("doctorSpecialization", doctorSpecialization != null ? doctorSpecialization : "");
+                    ctx.setVariable("diagnosis", diagnosis != null ? diagnosis : "");
+                    ctx.setVariable("dosage", dosage != null ? dosage : "");
+                    ctx.setVariable("duration", duration != null ? duration : "");
                 });
 
         EmailNotificationRequest request = EmailNotificationRequest.builder()
                 .to(recipientEmail)
                 .recipientId(recipientId)
-                .subject("New Prescription Issued")
+                .subject("New Prescription from " + effectiveDoctorName)
                 .body("Dear " + patientName + ", a new prescription has been issued for you. Medications: " + medications)
                 .notificationType("EMAIL")
                 .build();
@@ -176,50 +192,72 @@ public class EmailService {
     // Appointment events
     // ─────────────────────────────────────────────────────────────────────────
 
+    /** Backward-compatible overload (no patientName or specialization). */
     public void sendAppointmentConfirmationEmail(String recipientEmail, String recipientId,
                                                  String doctorName, String appointmentDate,
                                                  String appointmentTime) {
+        sendAppointmentConfirmationEmail(recipientEmail, recipientId, "Patient", "", doctorName, appointmentDate, appointmentTime);
+    }
+
+    /** Full-detail overload — includes patientName and specialization. */
+    public void sendAppointmentConfirmationEmail(String recipientEmail, String recipientId,
+                                                 String patientName, String specialization,
+                                                 String doctorName, String appointmentDate,
+                                                 String appointmentTime) {
+        String effectivePatient = (patientName != null && !patientName.isBlank()) ? patientName : "Patient";
         String html = renderTemplate("email/appointment-confirmation",
                 ctx -> {
+                    ctx.setVariable("patientName", effectivePatient);
                     ctx.setVariable("doctorName", doctorName);
                     ctx.setVariable("appointmentDate", appointmentDate);
                     ctx.setVariable("appointmentTime", appointmentTime);
-                    ctx.setVariable("specialization", "");
+                    ctx.setVariable("specialization", specialization != null ? specialization : "");
                 });
 
         EmailNotificationRequest request = EmailNotificationRequest.builder()
                 .to(recipientEmail)
                 .recipientId(recipientId)
                 .subject("Appointment Confirmed – " + doctorName + " on " + appointmentDate)
-                .body("Your appointment with " + doctorName + " is confirmed for "
-                        + appointmentDate + " at " + appointmentTime)
+                .body("Dear " + effectivePatient + ", your appointment with " + doctorName
+                        + " is confirmed for " + appointmentDate + " at " + appointmentTime)
                 .notificationType("EMAIL")
                 .build();
 
         sendHtmlEmail(request, html);
     }
 
-    // Overload for backward compatibility with existing controller callers
+    /** Backward-compatible overload. */
     public void sendCancellationEmail(String recipientEmail, String recipientId, String reason) {
-        sendCancellationEmail(recipientEmail, recipientId, "", "", "", reason);
+        sendCancellationEmail(recipientEmail, recipientId, "Patient", "", "", "", reason);
     }
 
+    /** Overload without patientName (existing controller uses this form). */
     public void sendCancellationEmail(String recipientEmail, String recipientId,
                                       String doctorName, String appointmentDate,
                                       String appointmentTime, String reason) {
+        sendCancellationEmail(recipientEmail, recipientId, "Patient", doctorName, appointmentDate, appointmentTime, reason);
+    }
+
+    /** Full-detail overload — includes patientName. */
+    public void sendCancellationEmail(String recipientEmail, String recipientId,
+                                      String patientName, String doctorName,
+                                      String appointmentDate, String appointmentTime,
+                                      String reason) {
+        String effectivePatient = (patientName != null && !patientName.isBlank()) ? patientName : "Patient";
         String html = renderTemplate("email/appointment-cancellation",
                 ctx -> {
+                    ctx.setVariable("patientName", effectivePatient);
                     ctx.setVariable("doctorName", doctorName);
                     ctx.setVariable("appointmentDate", appointmentDate);
                     ctx.setVariable("appointmentTime", appointmentTime);
-                    ctx.setVariable("reason", reason);
+                    ctx.setVariable("reason", reason != null ? reason : "Appointment cancelled");
                 });
 
         EmailNotificationRequest request = EmailNotificationRequest.builder()
                 .to(recipientEmail)
                 .recipientId(recipientId)
                 .subject("Appointment Cancelled – HealthCare Platform")
-                .body("Your appointment has been cancelled. Reason: " + reason)
+                .body("Dear " + effectivePatient + ", your appointment has been cancelled. Reason: " + reason)
                 .notificationType("EMAIL")
                 .build();
 

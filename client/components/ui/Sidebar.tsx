@@ -44,12 +44,12 @@ export function Sidebar({ role }: SidebarProps) {
     DOCTOR: [
       { name: "Dashboard", href: "/doctor/dashboard", icon: <LayoutDashboard /> },
       { name: "Appointments", href: "/doctor/appointments", icon: <ClipboardList /> },
-      { name: "Schedule", href: "/doctor/schedule", icon: <Calendar /> },
-      { name: "Availability", href: "/doctor/availability", icon: <Clock className="w-5 h-5" /> },
+      // { name: "Schedule", href: "/doctor/schedule", icon: <Calendar /> },
+      { name: "Schedule", href: "/doctor/availability", icon: <Clock className="w-5 h-5" /> },
       { name: "Prescriptions", href: "/doctor/prescriptions", icon: <Pill /> },
-      { name: "Patients", href: "/doctor/patients", icon: <Users /> },
-      { name: "Consultations", href: "/doctor/consultations", icon: <Video /> },
-      { name: "Messages", href: "/doctor/messages", icon: <MessageSquare /> },
+      // { name: "Patients", href: "/doctor/patients", icon: <Users /> },
+      // { name: "Consultations", href: "/doctor/consultations", icon: <Video /> },
+      // { name: "Messages", href: "/doctor/messages", icon: <MessageSquare /> },
       { name: "Profile", href: "/doctor/profile", icon: <User /> },
     ],
     ADMIN: [
