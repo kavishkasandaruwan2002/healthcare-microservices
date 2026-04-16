@@ -7,48 +7,37 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Component;
 
-import static com.medisync.payment.config.RabbitMQConfig.PAYMENT_COMPLETED_ROUTING_KEY;
-import static com.medisync.payment.config.RabbitMQConfig.PAYMENT_EXCHANGE;
-import static com.medisync.payment.config.RabbitMQConfig.PAYMENT_FAILED_ROUTING_KEY;
-
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class PaymentEventPublisher {
 
     private final RabbitTemplate rabbitTemplate;
+    private static final String EXCHANGE = "payment.exchange";
 
     public void publishPaymentCompleted(Payment payment) {
-        PaymentEventPayload payload = PaymentEventPayload.builder()
-                .paymentId(payment.getPaymentId())
-                .appointmentId(payment.getAppointmentId())
-                .patientId(payment.getPatientId())
-                .doctorId(payment.getDoctorId())
-                .amount(payment.getAmount())
-                .currency(payment.getCurrency())
-                .status(payment.getStatus())
-                .stripePaymentIntentId(payment.getStripePaymentIntentId())
-                .failureReason(null)
-                .build();
-
+        PaymentEventPayload payload = buildPayload(payment, "SUCCESS");
         log.info("Publishing payment.completed event for payment: {}", payment.getPaymentId());
-        rabbitTemplate.convertAndSend(PAYMENT_EXCHANGE, PAYMENT_COMPLETED_ROUTING_KEY, payload);
+        rabbitTemplate.convertAndSend(EXCHANGE, "payment.completed", payload);
     }
 
     public void publishPaymentFailed(Payment payment) {
-        PaymentEventPayload payload = PaymentEventPayload.builder()
+        PaymentEventPayload payload = buildPayload(payment, "FAILED");
+        log.info("Publishing payment.failed event for payment: {}", payment.getPaymentId());
+        rabbitTemplate.convertAndSend(EXCHANGE, "payment.failed", payload);
+    }
+
+    private PaymentEventPayload buildPayload(Payment payment, String status) {
+        return PaymentEventPayload.builder()
                 .paymentId(payment.getPaymentId())
                 .appointmentId(payment.getAppointmentId())
                 .patientId(payment.getPatientId())
                 .doctorId(payment.getDoctorId())
                 .amount(payment.getAmount())
                 .currency(payment.getCurrency())
-                .status(payment.getStatus())
+                .status(status)
                 .stripePaymentIntentId(payment.getStripePaymentIntentId())
                 .failureReason(payment.getFailureReason())
                 .build();
-
-        log.info("Publishing payment.failed event for payment: {}", payment.getPaymentId());
-        rabbitTemplate.convertAndSend(PAYMENT_EXCHANGE, PAYMENT_FAILED_ROUTING_KEY, payload);
     }
 }

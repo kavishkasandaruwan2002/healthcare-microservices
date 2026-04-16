@@ -15,7 +15,9 @@ import com.medisync.payment.exception.PaymentNotFoundException;
 import com.medisync.payment.messaging.PaymentEventPublisher;
 import com.medisync.payment.repository.PaymentRepository;
 import com.medisync.payment.repository.RefundRepository;
+import com.medisync.payment.security.UserPrincipal;
 import com.medisync.payment.stripe.StripeGateway;
+import org.springframework.security.access.AccessDeniedException;
 import com.stripe.exception.StripeException;
 import com.stripe.model.PaymentIntent;
 import io.micrometer.core.instrument.Counter;
@@ -100,8 +102,8 @@ class PaymentServiceTest {
                 .currency("USD")
                 .status(PaymentStatus.PENDING)
                 .description("Consultation fee - Dr. Smith")
-                .stripePaymentIntentId("")
-                .stripeClientSecret("")
+                .stripePaymentIntentId(null)
+                .stripeClientSecret(null)
                 .build();
 
         when(paymentRepository.findByAppointmentId(appointmentId)).thenReturn(Optional.of(payment));
@@ -116,7 +118,7 @@ class PaymentServiceTest {
 
         assertNotNull(response);
         assertEquals("pi_test123_secret_abc", response.getClientSecret());
-        assertEquals(PaymentStatus.PENDING, response.getStatus());
+        assertEquals(PaymentStatus.PENDING.name(), response.getStatus());
         verify(paymentRepository).save(argThat(p ->
                 p.getStripePaymentIntentId().equals("pi_test123") &&
                 p.getStripeClientSecret().equals("pi_test123_secret_abc")
@@ -333,7 +335,7 @@ class PaymentServiceTest {
     }
 
     @Test
-    void getPaymentById_asOtherPatient_throwsNotFound() {
+    void getPaymentById_asOtherPatient_throwsAccessDenied() {
         Payment payment = Payment.builder()
                 .paymentId(paymentId)
                 .appointmentId(appointmentId)
@@ -347,7 +349,7 @@ class PaymentServiceTest {
         UUID otherPatientId = UUID.randomUUID();
         when(paymentRepository.findById(paymentId)).thenReturn(Optional.of(payment));
 
-        assertThrows(PaymentNotFoundException.class, () ->
+        assertThrows(AccessDeniedException.class, () ->
                 paymentService.getPaymentById(paymentId, otherPatientId, "PATIENT"));
     }
 }

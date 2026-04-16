@@ -1,350 +1,308 @@
 {
-  "info": {
-    "_postman_id": "payment-service-collection",
-    "name": "Payment Service API",
-    "description": "MediSync Payment Microservice - Stripe Sandbox",
-    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
-  },
-  "variable": [
-    {
-      "key": "base_url",
-      "value": "http://localhost:8085",
-      "type": "string"
-    },
-    {
-      "key": "token",
-      "value": "",
-      "type": "string"
-    },
-    {
-      "key": "admin_token",
-      "value": "",
-      "type": "string"
-    },
-    {
-      "key": "appointment_id",
-      "value": "550e8400-e29b-41d4-a716-446655440001",
-      "type": "string"
-    },
-    {
-      "key": "payment_id",
-      "value": "",
-      "type": "string"
-    },
-    {
-      "key": "client_secret",
-      "value": "",
-      "type": "string"
-    }
-  ],
-  "item": [
-    {
-      "name": "Payment Flow",
-      "item": [
-        {
-          "name": "Initiate Payment",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{token}}"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"appointmentId\": \"{{appointment_id}}\"\n}"
-            },
-            "url": {
-              "raw": "{{base_url}}/api/v1/payments/initiate",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "payments", "initiate"]
-            }
-          },
-          "response": [],
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test(\"Status code is 200\", function() {",
-                  "    pm.response.to.have.status(200);",
-                  "});",
-                  "pm.test(\"Response has clientSecret\", function() {",
-                  "    var jsonData = pm.response.json();",
-                  "    pm.expect(jsonData.clientSecret).to.exist;",
-                  "    pm.environment.set(\"payment_id\", jsonData.paymentId);",
-                  "    pm.environment.set(\"client_secret\", jsonData.clientSecret);",
-                  "});"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "Stripe Webhook (Simulate)",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Stripe-Signature",
-                "value": "t=1234567890,v1=abc123"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"id\": \"evt_123\",\n  \"type\": \"payment_intent.succeeded\",\n  \"data\": {\n    \"object\": {\n      \"id\": \"pi_123\",\n      \"amount\": 2500,\n      \"currency\": \"usd\",\n      \"status\": \"succeeded\"\n    }\n  }\n}"
-            },
-            "url": {
-              "raw": "{{base_url}}/api/v1/payments/webhook",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "payments", "webhook"]
-            }
-          },
-          "response": []
-        }
-      ]
-    },
-    {
-      "name": "Payment Queries",
-      "item": [
-        {
-          "name": "Get Payment by ID",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{token}}"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/v1/payments/{{payment_id}}",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "payments", "{{payment_id}}"]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Get Payment by Appointment",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{token}}"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/v1/payments/appointment/{{appointment_id}}",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "payments", "appointment", "{{appointment_id}}"]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "My Payments",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{token}}"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/v1/payments/my-payments?status=SUCCESS&page=0&size=10",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "payments", "my-payments"],
-              "query": [
-                {"key": "status", "value": "SUCCESS"},
-                {"key": "page", "value": "0"},
-                {"key": "size", "value": "10"}
-              ]
-            }
-          },
-          "response": []
-        }
-      ]
-    },
-    {
-      "name": "Refund",
-      "item": [
-        {
-          "name": "Issue Refund (Admin)",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{admin_token}}"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"reason\": \"Patient cancelled appointment\"\n}"
-            },
-            "url": {
-              "raw": "{{base_url}}/api/v1/payments/{{payment_id}}/refund",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "payments", "{{payment_id}}", "refund"]
-            }
-          },
-          "response": []
-        }
-      ]
-    },
-    {
-      "name": "Admin",
-      "item": [
-        {
-          "name": "List All Payments",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{admin_token}}"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/v1/payments?page=0&size=20",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "payments"],
-              "query": [
-                {"key": "page", "value": "0"},
-                {"key": "size", "value": "20"}
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Payment Stats",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{admin_token}}"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/v1/payments/stats",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "payments", "stats"]
-            }
-          },
-          "response": []
-        }
-      ]
-    },
-    {
-      "name": "Error Cases",
-      "item": [
-        {
-          "name": "Initiate Already Paid (409)",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{token}}"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"appointmentId\": \"{{appointment_id}}\"\n}"
-            },
-            "url": {
-              "raw": "{{base_url}}/api/v1/payments/initiate",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "payments", "initiate"]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Get Nonexistent Payment (404)",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{token}}"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/v1/payments/00000000-0000-0000-0000-000000000000",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "payments", "00000000-0000-0000-0000-000000000000"]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Refund Non-Success Payment (409)",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{admin_token}}"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"reason\": \"Test\"\n}"
-            },
-            "url": {
-              "raw": "{{base_url}}/api/v1/payments/{{payment_id}}/refund",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "payments", "{{payment_id}}", "refund"]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Get Stats as Patient (403)",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{token}}"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/v1/payments/stats",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "payments", "stats"]
-            }
-          },
-          "response": []
-        }
-      ]
-    }
-  ]
+	"info": {
+		"_postman_id": "7de7a8d5-912c-4e89-9a29-078b54359283",
+		"name": "Payment API",
+		"description": "MediSync Payment Microservice API Collection",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Payment Flow",
+			"item": [
+				{
+					"name": "POST Initiate Payment",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"appointmentId\": \"{{appointment_id}}\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/payments/initiate",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"payments",
+								"initiate"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "POST Stripe Webhook (Simulate Success)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Stripe-Signature",
+								"value": "whsec_test_sig",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"id\": \"evt_test\",\n    \"type\": \"payment_intent.succeeded\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/payments/webhook",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"payments",
+								"webhook"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Payment Queries",
+			"item": [
+				{
+					"name": "GET Get Payment by ID",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/payments/{{payment_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"payments",
+								"{{payment_id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "GET Get Payment by Appointment",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/payments/appointment/{{appointment_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"payments",
+								"appointment",
+								"{{appointment_id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "GET My Payments",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/payments/my-payments?page=0&size=10",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"payments",
+								"my-payments"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "0"
+								},
+								{
+									"key": "size",
+									"value": "10"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Refund",
+			"item": [
+				{
+					"name": "POST Issue Refund (Admin)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{admin_token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"reason\": \"Patient cancelled appointment\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/payments/{{payment_id}}/refund",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"payments",
+								"{{payment_id}}",
+								"refund"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Admin",
+			"item": [
+				{
+					"name": "GET List All Payments",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{admin_token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/payments?page=0&size=20",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"payments"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "0"
+								},
+								{
+									"key": "size",
+									"value": "20"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "GET Payment Stats",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{admin_token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/payments/stats",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"payments",
+								"stats"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8085"
+		},
+		{
+			"key": "token",
+			"value": "your_patient_jwt"
+		},
+		{
+			"key": "admin_token",
+			"value": "your_admin_jwt"
+		},
+		{
+			"key": "appointment_id",
+			"value": "550e8400-e29b-41d4-a716-446655440001"
+		},
+		{
+			"key": "payment_id",
+			"value": "your_payment_id"
+		}
+	]
 }

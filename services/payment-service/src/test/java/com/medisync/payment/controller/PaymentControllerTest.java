@@ -86,7 +86,7 @@ class PaymentControllerTest {
                 .clientSecret("pi_test_secret_abc")
                 .amount(BigDecimal.valueOf(25.00))
                 .currency("USD")
-                .status(PaymentStatus.PENDING)
+                .status(PaymentStatus.PENDING.name())
                 .stripePublishableKey("pk_test_123")
                 .build();
 

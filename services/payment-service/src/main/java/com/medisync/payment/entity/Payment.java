@@ -23,46 +23,39 @@ public class Payment {
 
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
-    @Column(name = "payment_id")
     private UUID paymentId;
 
-    @Column(name = "appointment_id", nullable = false)
+    @Column(nullable = false)
     private UUID appointmentId;
 
-    @Column(name = "patient_id", nullable = false)
+    @Column(nullable = false)
     private UUID patientId;
 
-    @Column(name = "doctor_id", nullable = false)
+    @Column(nullable = false)
     private UUID doctorId;
 
-    @Column(name = "stripe_payment_intent_id", unique = true, nullable = false)
+    @Column(unique = true)
     private String stripePaymentIntentId;
 
-    @Column(name = "stripe_client_secret", nullable = false)
     private String stripeClientSecret;
 
-    @Column(name = "amount", nullable = false, precision = 10, scale = 2)
+    @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal amount;
 
-    @Column(name = "currency", nullable = false, length = 3)
-    @Builder.Default
+    @Column(nullable = false, length = 3)
     private String currency = "USD";
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "status", nullable = false)
     private PaymentStatus status;
 
-    @Column(name = "description")
     private String description;
 
-    @Column(name = "failure_reason")
     private String failureReason;
 
     @CreatedDate
-    @Column(name = "created_at", nullable = false, updatable = false)
+    @Column(updatable = false)
     private LocalDateTime createdAt;
 
     @LastModifiedDate
-    @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 }

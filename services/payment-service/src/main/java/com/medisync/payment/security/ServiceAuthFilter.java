@@ -1,58 +1,36 @@
 package com.medisync.payment.security;
 
-import org.springframework.lang.NonNull;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
-import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.Collections;
 
-@Slf4j
 @Component
-@RequiredArgsConstructor
 public class ServiceAuthFilter extends OncePerRequestFilter {
 
     @Value("${service.secret}")
     private String serviceSecret;
 
     @Override
-    protected void doFilterInternal(
-            @NonNull HttpServletRequest request,
-            @NonNull HttpServletResponse response,
-            @NonNull FilterChain filterChain) throws ServletException, IOException {
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
+            throws ServletException, IOException {
 
-        String serviceSecretHeader = request.getHeader("X-Service-Secret");
+        String headerSecret = request.getHeader("X-Service-Secret");
 
-        if (StringUtils.hasText(serviceSecretHeader)) {
-            if (serviceSecretHeader.equals(serviceSecret)) {
-                UserPrincipal servicePrincipal = new UserPrincipal("service", "SERVICE");
-
-                UsernamePasswordAuthenticationToken authentication =
-                        new UsernamePasswordAuthenticationToken(
-                                servicePrincipal,
-                                null,
-                                servicePrincipal.getAuthorities()
-                        );
-
-                authentication.setDetails(
-                        new WebAuthenticationDetailsSource().buildDetails(request)
-                );
-
-                SecurityContextHolder.getContext().setAuthentication(authentication);
-                log.debug("Service authentication successful");
-            } else {
-                log.warn("Invalid service secret provided");
-            }
+        if (headerSecret != null && headerSecret.equals(serviceSecret)) {
+            UserPrincipal principal = new UserPrincipal("SYSTEM", "ROLE_ADMIN");
+            UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
+                    principal, null, Collections.singletonList(new SimpleGrantedAuthority("ROLE_ADMIN")));
+            SecurityContextHolder.getContext().setAuthentication(auth);
         }
 
         filterChain.doFilter(request, response);

@@ -1,65 +1,28 @@
 package com.medisync.payment.security;
 
+import lombok.AllArgsConstructor;
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.userdetails.UserDetails;
-
-import java.util.Collection;
-import java.util.List;
 
 @Getter
-@RequiredArgsConstructor
-public class UserPrincipal implements UserDetails {
-
+@AllArgsConstructor
+public class UserPrincipal {
     private final String userId;
     private final String role;
 
-    @Override
-    public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of(new SimpleGrantedAuthority("ROLE_" + role));
-    }
-
-    @Override
-    public String getPassword() {
-        return null;
-    }
-
-    @Override
-    public String getUsername() {
-        return userId;
-    }
-
-    @Override
-    public boolean isAccountNonExpired() {
-        return true;
-    }
-
-    @Override
-    public boolean isAccountNonLocked() {
-        return true;
-    }
-
-    @Override
-    public boolean isCredentialsNonExpired() {
-        return true;
-    }
-
-    @Override
-    public boolean isEnabled() {
-        return true;
-    }
-
     public boolean isAdmin() {
-        return "ADMIN".equalsIgnoreCase(role);
+        return "ADMIN".equals(role) || "ROLE_ADMIN".equals(role);
     }
 
     public boolean isDoctor() {
-        return "DOCTOR".equalsIgnoreCase(role);
+        return "DOCTOR".equals(role) || "ROLE_DOCTOR".equals(role);
     }
 
     public boolean isPatient() {
-        return "PATIENT".equalsIgnoreCase(role);
+        return "PATIENT".equals(role) || "ROLE_PATIENT".equals(role);
+    }
+
+    public java.util.Collection<? extends org.springframework.security.core.GrantedAuthority> getAuthorities() {
+        String r = role.startsWith("ROLE_") ? role : "ROLE_" + role;
+        return java.util.Collections.singletonList(new org.springframework.security.core.authority.SimpleGrantedAuthority(r));
     }
 }

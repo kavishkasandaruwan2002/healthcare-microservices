@@ -1,7 +1,5 @@
 package com.medisync.payment.service;
 
-import jakarta.annotation.PostConstruct;
-
 import com.medisync.payment.dto.request.RefundRequest;
 import com.medisync.payment.dto.response.PaymentInitiateResponse;
 import com.medisync.payment.dto.response.PaymentResponse;
@@ -22,6 +20,7 @@ import com.stripe.exception.SignatureVerificationException;
 import com.stripe.exception.StripeException;
 import com.stripe.model.Event;
 import com.stripe.model.PaymentIntent;
+import com.stripe.net.Webhook;
 import com.stripe.param.PaymentIntentCreateParams;
 import com.stripe.param.RefundCreateParams;
 import io.micrometer.core.instrument.Counter;
@@ -30,333 +29,267 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
-@Transactional
 public class PaymentServiceImpl implements PaymentService {
 
     private final PaymentRepository paymentRepository;
     private final RefundRepository refundRepository;
-    private final PaymentEventPublisher paymentEventPublisher;
+    private final PaymentEventPublisher eventPublisher;
     private final StripeGateway stripeGateway;
     private final MeterRegistry meterRegistry;
-
-    @Value("${stripe.publishable-key}")
-    private String stripePublishableKey;
 
     @Value("${stripe.webhook-secret}")
     private String stripeWebhookSecret;
 
+    @Value("${stripe.publishable-key}")
+    private String stripePublishableKey;
+
     @Value("${stripe.currency:USD}")
     private String defaultCurrency;
 
-    private Counter paymentsInitiatedCounter;
-    private Counter paymentsSucceededCounter;
-    private Counter paymentsFailedCounter;
-    private Counter refundsIssuedCounter;
+    // Micrometer metrics
+    private final Counter paymentsInitiatedCounter;
+    private final Counter paymentsSucceededCounter;
+    private final Counter paymentsFailedCounter;
+    private final Counter refundsIssuedCounter;
 
-    @PostConstruct
-    public void initCounters() {
-        this.paymentsInitiatedCounter = Counter.builder("payments_initiated_total").register(meterRegistry);
-        this.paymentsSucceededCounter = Counter.builder("payments_succeeded_total").register(meterRegistry);
-        this.paymentsFailedCounter = Counter.builder("payments_failed_total").register(meterRegistry);
-        this.refundsIssuedCounter = Counter.builder("refunds_issued_total").register(meterRegistry);
+    public PaymentServiceImpl(PaymentRepository paymentRepository, 
+                              RefundRepository refundRepository, 
+                              PaymentEventPublisher eventPublisher, 
+                              MeterRegistry meterRegistry,
+                              StripeGateway stripeGateway) {
+        this.paymentRepository = paymentRepository;
+        this.refundRepository = refundRepository;
+        this.eventPublisher = eventPublisher;
+        this.meterRegistry = meterRegistry;
+        this.stripeGateway = stripeGateway;
+
+        this.paymentsInitiatedCounter = meterRegistry.counter("payment.initiated");
+        this.paymentsSucceededCounter = meterRegistry.counter("payment.succeeded");
+        this.paymentsFailedCounter = meterRegistry.counter("payment.failed");
+        this.refundsIssuedCounter = meterRegistry.counter("payment.refunded");
+        
+        meterRegistry.gauge("payment.total.revenue", this, 
+                service -> paymentRepository.calculateTotalRevenue().doubleValue());
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public PaymentInitiateResponse initiatePayment(UUID appointmentId, UUID patientId) {
         Payment payment = paymentRepository.findByAppointmentId(appointmentId)
-                .orElseThrow(() -> new PaymentNotFoundException(
-                        "No payment found for appointment: " + appointmentId));
-
-        if (!payment.getPatientId().equals(patientId)) {
-            throw new PaymentNotFoundException("Payment not found for this patient");
-        }
+                .orElseThrow(() -> new PaymentNotFoundException("Payment record not found for appointment: " + appointmentId));
 
         if (payment.getStatus() == PaymentStatus.SUCCESS) {
-            throw new PaymentAlreadyCompletedException(
-                    "Payment already completed for this appointment");
+            throw new PaymentAlreadyCompletedException("Payment already completed for this appointment");
         }
 
-        paymentsInitiatedCounter.increment();
+        if (payment.getStripePaymentIntentId() == null) {
+            try {
+                long amountInCents = payment.getAmount().multiply(new BigDecimal(100)).longValue();
+                
+                PaymentIntentCreateParams params = PaymentIntentCreateParams.builder()
+                        .setAmount(amountInCents)
+                        .setCurrency(payment.getCurrency().toLowerCase())
+                        .setDescription(payment.getDescription())
+                        .putMetadata("appointmentId", appointmentId.toString())
+                        .putMetadata("patientId", patientId.toString())
+                        .build();
 
-        if (payment.getStripePaymentIntentId() != null &&
-            !payment.getStripePaymentIntentId().isEmpty()) {
-            return PaymentInitiateResponse.builder()
-                    .paymentId(payment.getPaymentId())
-                    .clientSecret(payment.getStripeClientSecret())
-                    .amount(payment.getAmount())
-                    .currency(payment.getCurrency())
-                    .status(payment.getStatus())
-                    .stripePublishableKey(stripePublishableKey)
-                    .build();
-        }
-
-        try {
-            long amountInCents = payment.getAmount().multiply(BigDecimal.valueOf(100)).longValue();
-
-            PaymentIntentCreateParams params = PaymentIntentCreateParams.builder()
-                    .setAmount(amountInCents)
-                    .setCurrency(payment.getCurrency().toLowerCase())
-                    .setDescription(payment.getDescription())
-                    .putMetadata("appointmentId", appointmentId.toString())
-                    .putMetadata("patientId", payment.getPatientId().toString())
-                    .build();
-
-            PaymentIntent intent = stripeGateway.createPaymentIntent(params);
-
-            payment.setStripePaymentIntentId(intent.getId());
-            payment.setStripeClientSecret(intent.getClientSecret());
-            payment = paymentRepository.save(payment);
-
-            return PaymentInitiateResponse.builder()
-                    .paymentId(payment.getPaymentId())
-                    .clientSecret(intent.getClientSecret())
-                    .amount(payment.getAmount())
-                    .currency(payment.getCurrency())
-                    .status(payment.getStatus())
-                    .stripePublishableKey(stripePublishableKey)
-                    .build();
-
-        } catch (StripeException e) {
-            log.error("Failed to create Stripe PaymentIntent: {}", e.getMessage());
-            throw new RuntimeException("Stripe error", e);
-        }
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public PaymentResponse getPaymentById(UUID paymentId, UUID userId, String role) {
-        Payment payment = paymentRepository.findById(paymentId)
-                .orElseThrow(() -> new PaymentNotFoundException(
-                        "Payment not found: " + paymentId));
-
-        if (!"ADMIN".equalsIgnoreCase(role)) {
-            if (!payment.getPatientId().equals(userId) && !payment.getDoctorId().equals(userId)) {
-                throw new PaymentNotFoundException("Payment not found");
+                PaymentIntent intent = stripeGateway.createPaymentIntent(params);
+                
+                payment.setStripePaymentIntentId(intent.getId());
+                payment.setStripeClientSecret(intent.getClientSecret());
+                paymentRepository.save(payment);
+                
+                paymentsInitiatedCounter.increment();
+            } catch (StripeException e) {
+                log.error("Stripe error creating PaymentIntent", e);
+                throw new RuntimeException("Payment gateway error: " + e.getMessage());
             }
         }
 
-        return mapToPaymentResponse(payment);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public PaymentResponse getPaymentByAppointmentId(UUID appointmentId, UUID userId, String role) {
-        Payment payment = paymentRepository.findByAppointmentId(appointmentId)
-                .orElseThrow(() -> new PaymentNotFoundException(
-                        "No payment found for appointment: " + appointmentId));
-
-        if (!"ADMIN".equalsIgnoreCase(role)) {
-            if (!payment.getPatientId().equals(userId) && !payment.getDoctorId().equals(userId)) {
-                throw new PaymentNotFoundException("Payment not found");
-            }
-        }
-
-        return mapToPaymentResponse(payment);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public Page<PaymentResponse> getMyPayments(UUID patientId, String status, Pageable pageable) {
-        Page<Payment> allPayments = paymentRepository.findByPatientId(patientId, pageable);
-        if (status != null && !status.isEmpty()) {
-            PaymentStatus paymentStatus = PaymentStatus.valueOf(status.toUpperCase());
-            java.util.List<PaymentResponse> filtered = allPayments.stream()
-                    .filter(p -> p.getStatus() == paymentStatus)
-                    .map(this::mapToPaymentResponse)
-                    .toList();
-            return new PageImpl<>(filtered, pageable, allPayments.getTotalElements());
-        }
-        return allPayments.map(this::mapToPaymentResponse);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public Page<PaymentResponse> getAllPayments(String status, UUID patientId, Pageable pageable) {
-        PaymentStatus paymentStatus = status != null && !status.isEmpty()
-                ? PaymentStatus.valueOf(status.toUpperCase()) : null;
-
-        Page<Payment> payments = paymentRepository.findAllWithFilters(
-                paymentStatus, patientId, pageable);
-
-        return payments.map(this::mapToPaymentResponse);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public PaymentStatsResponse getPaymentStats() {
-        long totalPayments = paymentRepository.count();
-        long successfulPayments = paymentRepository.countByStatus(PaymentStatus.SUCCESS);
-        long failedPayments = paymentRepository.countByStatus(PaymentStatus.FAILED);
-        long refundedPayments = paymentRepository.countByStatus(PaymentStatus.REFUNDED);
-        BigDecimal totalRevenue = paymentRepository.calculateTotalRevenue();
-
-        return PaymentStatsResponse.builder()
-                .totalPayments(totalPayments)
-                .successfulPayments(successfulPayments)
-                .failedPayments(failedPayments)
-                .refundedPayments(refundedPayments)
-                .totalRevenue(totalRevenue)
-                .currency(defaultCurrency)
+        return PaymentInitiateResponse.builder()
+                .paymentId(payment.getPaymentId())
+                .clientSecret(payment.getStripeClientSecret())
+                .amount(payment.getAmount())
+                .currency(payment.getCurrency())
+                .status(payment.getStatus().name())
+                .stripePublishableKey(stripePublishableKey)
                 .build();
     }
 
     @Override
-    public RefundResponse issueRefund(UUID paymentId, RefundRequest refundRequest) {
+    @Transactional
+    public void handleWebhook(String payload, String sigHeader) throws SignatureVerificationException {
+        Event event = stripeGateway.constructWebhookEvent(payload, sigHeader, stripeWebhookSecret);
+
+        log.info("Handling Stripe Webhook event: {}", event.getType());
+
+        if ("payment_intent.succeeded".equals(event.getType())) {
+            PaymentIntent intent = (PaymentIntent) event.getDataObjectDeserializer().getObject()
+                    .orElseThrow(() -> new RuntimeException("Failed to deserialize PaymentIntent"));
+            
+            updatePaymentStatus(intent.getId(), PaymentStatus.SUCCESS, null);
+            paymentsSucceededCounter.increment();
+            
+        } else if ("payment_intent.payment_failed".equals(event.getType())) {
+            PaymentIntent intent = (PaymentIntent) event.getDataObjectDeserializer().getObject()
+                    .orElseThrow(() -> new RuntimeException("Failed to deserialize PaymentIntent"));
+            
+            String reason = intent.getLastPaymentError() != null ? intent.getLastPaymentError().getMessage() : "Unknown error";
+            updatePaymentStatus(intent.getId(), PaymentStatus.FAILED, reason);
+            paymentsFailedCounter.increment();
+        }
+    }
+
+    private void updatePaymentStatus(String intentId, PaymentStatus status, String failureReason) {
+        Payment payment = paymentRepository.findByStripePaymentIntentId(intentId)
+                .orElseThrow(() -> new PaymentNotFoundException("Payment not found for Intent ID: " + intentId));
+
+        payment.setStatus(status);
+        payment.setFailureReason(failureReason);
+        paymentRepository.save(payment);
+
+        if (status == PaymentStatus.SUCCESS) {
+            eventPublisher.publishPaymentCompleted(payment);
+        } else if (status == PaymentStatus.FAILED) {
+            eventPublisher.publishPaymentFailed(payment);
+        }
+    }
+
+    @Override
+    public PaymentResponse getPaymentById(UUID paymentId, UUID userId, String role) {
         Payment payment = paymentRepository.findById(paymentId)
-                .orElseThrow(() -> new PaymentNotFoundException(
-                        "Payment not found: " + paymentId));
+                .orElseThrow(() -> new PaymentNotFoundException("Payment not found"));
+
+        validateAccess(payment, userId, role);
+        return mapToResponse(payment);
+    }
+
+    @Override
+    public PaymentResponse getPaymentByAppointmentId(UUID appointmentId, UUID userId, String role) {
+        Payment payment = paymentRepository.findByAppointmentId(appointmentId)
+                .orElseThrow(() -> new PaymentNotFoundException("Payment not found for appointment"));
+
+        validateAccess(payment, userId, role);
+        return mapToResponse(payment);
+    }
+
+    private void validateAccess(Payment payment, UUID userId, String role) {
+        boolean isAdmin = role.contains("ADMIN");
+        boolean isDoctor = role.contains("DOCTOR") && payment.getDoctorId().equals(userId);
+        boolean isPatient = role.contains("PATIENT") && payment.getPatientId().equals(userId);
+
+        if (!isAdmin && !isDoctor && !isPatient) {
+            throw new AccessDeniedException("You do not have permission to view this payment");
+        }
+    }
+
+    @Override
+    public Page<PaymentResponse> getMyPayments(UUID patientId, String status, Pageable pageable) {
+        PaymentStatus s = status != null ? PaymentStatus.valueOf(status.toUpperCase()) : null;
+        return paymentRepository.findAllWithFilters(s, patientId, pageable).map(this::mapToResponse);
+    }
+
+    @Override
+    @Transactional
+    public RefundResponse issueRefund(UUID paymentId, RefundRequest request) {
+        Payment payment = paymentRepository.findById(paymentId)
+                .orElseThrow(() -> new PaymentNotFoundException("Payment not found"));
 
         if (payment.getStatus() != PaymentStatus.SUCCESS) {
-            throw new InvalidPaymentStateException(
-                    "Cannot refund payment with status: " + payment.getStatus());
+            throw new InvalidPaymentStateException("Only successful payments can be refunded");
         }
 
         try {
             RefundCreateParams.Builder paramsBuilder = RefundCreateParams.builder()
-                    .setPaymentIntent(payment.getStripePaymentIntentId())
-                    .setReason(RefundCreateParams.Reason.REQUESTED_BY_CUSTOMER);
+                    .setPaymentIntent(payment.getStripePaymentIntentId());
 
-            if (refundRequest.getAmount() != null) {
-                long amountInCents = refundRequest.getAmount()
-                        .multiply(BigDecimal.valueOf(100)).longValue();
-                paramsBuilder.setAmount(amountInCents);
+            BigDecimal refundAmount = payment.getAmount();
+            if (request.getAmount() != null) {
+                refundAmount = request.getAmount();
+                paramsBuilder.setAmount(refundAmount.multiply(new BigDecimal(100)).longValue());
             }
-
+            
+            paramsBuilder.setReason(RefundCreateParams.Reason.REQUESTED_BY_CUSTOMER);
+            
             com.stripe.model.Refund stripeRefund = stripeGateway.createRefund(paramsBuilder.build());
 
             Refund refund = Refund.builder()
                     .payment(payment)
                     .stripeRefundId(stripeRefund.getId())
-                    .amount(refundRequest.getAmount() != null
-                            ? refundRequest.getAmount()
-                            : payment.getAmount())
-                    .reason(refundRequest.getReason())
+                    .amount(refundAmount)
+                    .reason(request.getReason())
                     .status(RefundStatus.SUCCEEDED)
+                    .createdAt(LocalDateTime.now())
                     .build();
 
             refundRepository.save(refund);
 
-            if (refundRequest.getAmount() == null ||
-                refund.getAmount().compareTo(payment.getAmount()) >= 0) {
+            if (refundAmount.compareTo(payment.getAmount()) >= 0) {
                 payment.setStatus(PaymentStatus.REFUNDED);
                 paymentRepository.save(payment);
             }
 
             refundsIssuedCounter.increment();
 
-            return mapToRefundResponse(refund);
+            return RefundResponse.builder()
+                    .refundId(refund.getRefundId())
+                    .paymentId(payment.getPaymentId())
+                    .stripeRefundId(stripeRefund.getId())
+                    .amount(refundAmount)
+                    .status(refund.getStatus())
+                    .reason(refund.getReason())
+                    .build();
 
         } catch (StripeException e) {
-            log.error("Failed to create Stripe refund: {}", e.getMessage());
-            throw new RuntimeException("Stripe error", e);
+            log.error("Stripe refund error", e);
+            throw new RuntimeException("Refund failed: " + e.getMessage());
         }
     }
 
     @Override
-    public void handleWebhook(String payload, String signature) throws SignatureVerificationException {
-        try {
-            Event event = stripeGateway.constructWebhookEvent(payload, signature, stripeWebhookSecret);
-            String eventType = event.getType();
-
-            log.info("Received Stripe webhook event: {}", eventType);
-
-            switch (eventType) {
-                case "payment_intent.succeeded":
-                    handlePaymentIntentSucceeded(event);
-                    break;
-                case "payment_intent.payment_failed":
-                    handlePaymentIntentFailed(event);
-                    break;
-                default:
-                    log.info("Ignoring unsupported event type: {}", eventType);
-            }
-
-        } catch (SignatureVerificationException e) {
-            log.error("Invalid webhook signature: {}", e.getMessage());
-            throw new RuntimeException("Invalid webhook signature", e);
-        } catch (Exception e) {
-            log.error("Error processing webhook: {}", e.getMessage(), e);
-            throw new RuntimeException("Webhook processing failed", e);
-        }
+    public Page<PaymentResponse> getAllPayments(String status, UUID patientId, Pageable pageable) {
+        PaymentStatus s = status != null ? PaymentStatus.valueOf(status.toUpperCase()) : null;
+        return paymentRepository.findAllWithFilters(s, patientId, pageable).map(this::mapToResponse);
     }
 
-    private void handlePaymentIntentSucceeded(Event event) {
-        PaymentIntent intent = (PaymentIntent) event.getDataObjectDeserializer().getObject()
-                .orElseThrow(() -> new PaymentNotFoundException("PaymentIntent not found in event"));
-
-        Payment payment = paymentRepository.findByStripePaymentIntentId(intent.getId())
-                .orElseThrow(() -> new PaymentNotFoundException(
-                        "Payment not found for Stripe PaymentIntent: " + intent.getId()));
-
-        payment.setStatus(PaymentStatus.SUCCESS);
-        paymentRepository.save(payment);
-
-        paymentsSucceededCounter.increment();
-        paymentEventPublisher.publishPaymentCompleted(payment);
-
-        log.info("Payment succeeded: {}", payment.getPaymentId());
+    @Override
+    public PaymentStatsResponse getPaymentStats() {
+        return PaymentStatsResponse.builder()
+                .totalPayments(paymentRepository.count())
+                .successfulPayments(paymentRepository.countByStatus(PaymentStatus.SUCCESS))
+                .failedPayments(paymentRepository.countByStatus(PaymentStatus.FAILED))
+                .refundedPayments(paymentRepository.countByStatus(PaymentStatus.REFUNDED))
+                .totalRevenue(paymentRepository.calculateTotalRevenue())
+                .currency(defaultCurrency)
+                .build();
     }
 
-    private void handlePaymentIntentFailed(Event event) {
-        PaymentIntent intent = (PaymentIntent) event.getDataObjectDeserializer().getObject()
-                .orElseThrow(() -> new PaymentNotFoundException("PaymentIntent not found in event"));
-
-        Payment payment = paymentRepository.findByStripePaymentIntentId(intent.getId())
-                .orElseThrow(() -> new PaymentNotFoundException(
-                        "Payment not found for Stripe PaymentIntent: " + intent.getId()));
-
-        String failureReason = intent.getLastPaymentError() != null
-                ? intent.getLastPaymentError().getMessage()
-                : "Payment failed";
-
-        payment.setStatus(PaymentStatus.FAILED);
-        payment.setFailureReason(failureReason);
-        paymentRepository.save(payment);
-
-        paymentsFailedCounter.increment();
-        paymentEventPublisher.publishPaymentFailed(payment);
-
-        log.info("Payment failed: {}, reason: {}", payment.getPaymentId(), failureReason);
-    }
-
-    private PaymentResponse mapToPaymentResponse(Payment payment) {
+    private PaymentResponse mapToResponse(Payment payment) {
         return PaymentResponse.builder()
                 .paymentId(payment.getPaymentId())
                 .appointmentId(payment.getAppointmentId())
                 .patientId(payment.getPatientId())
                 .doctorId(payment.getDoctorId())
-                .stripePaymentIntentId(payment.getStripePaymentIntentId())
                 .amount(payment.getAmount())
                 .currency(payment.getCurrency())
                 .status(payment.getStatus())
                 .description(payment.getDescription())
+                .stripePaymentIntentId(payment.getStripePaymentIntentId())
                 .failureReason(payment.getFailureReason())
                 .createdAt(payment.getCreatedAt())
                 .updatedAt(payment.getUpdatedAt())
-                .build();
-    }
-
-    private RefundResponse mapToRefundResponse(Refund refund) {
-        return RefundResponse.builder()
-                .refundId(refund.getRefundId())
-                .paymentId(refund.getPayment().getPaymentId())
-                .stripeRefundId(refund.getStripeRefundId())
-                .amount(refund.getAmount())
-                .status(refund.getStatus())
-                .reason(refund.getReason())
-                .createdAt(refund.getCreatedAt())
                 .build();
     }
 }

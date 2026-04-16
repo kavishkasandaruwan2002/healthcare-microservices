@@ -3,3 +3,7 @@ node_modules
 .next
 dist
 build
+
+out
+charp_debug.log
+npm-debug.log

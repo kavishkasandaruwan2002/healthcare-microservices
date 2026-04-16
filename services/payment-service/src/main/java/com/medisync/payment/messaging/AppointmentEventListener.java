@@ -8,9 +8,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
-
-import static com.medisync.payment.config.RabbitMQConfig.PAYMENT_APPOINTMENT_CONFIRMED_QUEUE;
 
 @Slf4j
 @Component
@@ -19,19 +16,16 @@ public class AppointmentEventListener {
 
     private final PaymentRepository paymentRepository;
 
-    @RabbitListener(queues = PAYMENT_APPOINTMENT_CONFIRMED_QUEUE)
-    @Transactional
+    @RabbitListener(queues = "payment.appointment.confirmed")
     public void handleAppointmentConfirmed(AppointmentConfirmedEvent event) {
-        try {
-            log.info("Received appointment.confirmed event for appointment: {}", event.getAppointmentId());
+        log.info("Received appointment.confirmed event for appointment: {}", event.getAppointmentId());
 
-            // Check if payment already exists for this appointment (idempotent)
+        try {
             if (paymentRepository.findByAppointmentId(event.getAppointmentId()).isPresent()) {
-                log.warn("Payment already exists for appointment: {}, skipping", event.getAppointmentId());
+                log.warn("Payment record already exists for appointment: {}. Skipping.", event.getAppointmentId());
                 return;
             }
 
-            // Create Payment record with status PENDING
             Payment payment = Payment.builder()
                     .appointmentId(event.getAppointmentId())
                     .patientId(event.getPatientId())
@@ -40,18 +34,13 @@ public class AppointmentEventListener {
                     .currency(event.getCurrency())
                     .status(PaymentStatus.PENDING)
                     .description("Consultation fee - " + event.getDoctorName())
-                    .stripePaymentIntentId("")
-                    .stripeClientSecret("")
                     .build();
 
             paymentRepository.save(payment);
-            log.info("Created PENDING payment record for appointment: {}, paymentId: {}", 
-                    event.getAppointmentId(), payment.getPaymentId());
-
-        } catch (Exception ex) {
-            log.error("Error processing appointment.confirmed event for appointment: {}", 
-                    event.getAppointmentId(), ex);
-            // Never rethrow - log and continue
+            log.info("Created PENDING payment for appointment: {}", event.getAppointmentId());
+            
+        } catch (Exception e) {
+            log.error("Error processing appointment confirmed event", e);
         }
     }
 }

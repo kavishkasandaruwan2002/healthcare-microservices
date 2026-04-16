@@ -15,14 +15,10 @@ import java.util.UUID;
 
 @Repository
 public interface PaymentRepository extends JpaRepository<Payment, UUID> {
-
     Optional<Payment> findByAppointmentId(UUID appointmentId);
-
-    Optional<Payment> findByStripePaymentIntentId(String stripePaymentIntentId);
-
-    Page<Payment> findByPatientId(UUID patientId, Pageable pageable);
-
-    Page<Payment> findByStatus(PaymentStatus status, Pageable pageable);
+    Optional<Payment> findByStripePaymentIntentId(String intentId);
+    Page<Payment> findByPatientId(UUID patientId, Pageable p);
+    Page<Payment> findByStatus(PaymentStatus status, Pageable p);
 
     @Query("SELECT p FROM Payment p WHERE " +
            "(:status IS NULL OR p.status = :status) AND " +

@@ -26,10 +26,13 @@ import {
   Save,
   X,
   FileText,
-  Plus
+  Plus,
+  ChevronRight
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { toast } from 'react-hot-toast'
+import toast from 'react-hot-toast'
+import { Input } from '@/components/ui/Input'
+import { Label } from '@/components/ui/Label'
 
 interface DoctorProfile {
   id: string
@@ -362,7 +365,7 @@ export default function DoctorDashboard() {
 
                   {isEditing && (
                     <div className="pt-6 border-t border-slate-100 flex justify-end">
-                       <AnimatedButton onClick={handleUpdateProfile} loading={loading}>
+                       <AnimatedButton onClick={handleUpdateProfile} isLoading={loading}>
                           <Save className="h-4 w-4 mr-2" /> Save Professional Details
                        </AnimatedButton>
                     </div>
@@ -377,15 +380,3 @@ export default function DoctorDashboard() {
   )
 }
 
-function Label({ children }: { children: React.ReactNode }) {
-  return <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-1">{children}</label>
-}
-
-function Input({ ...props }: any) {
-  return (
-    <input 
-      {...props} 
-      className="h-12 w-full rounded-xl border border-slate-200 px-4 text-sm font-bold text-slate-900 outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 disabled:opacity-50 transition-all" 
-    />
-  )
-}

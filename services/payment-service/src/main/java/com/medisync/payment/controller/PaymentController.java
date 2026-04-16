@@ -1,11 +1,11 @@
 package com.medisync.payment.controller;
 
+import com.medisync.payment.dto.request.InitiatePaymentRequest;
 import com.medisync.payment.dto.request.RefundRequest;
 import com.medisync.payment.dto.response.PaymentInitiateResponse;
 import com.medisync.payment.dto.response.PaymentResponse;
 import com.medisync.payment.dto.response.PaymentStatsResponse;
 import com.medisync.payment.dto.response.RefundResponse;
-import com.medisync.payment.security.UserPrincipal;
 import com.medisync.payment.security.UserPrincipal;
 import com.medisync.payment.service.PaymentService;
 import com.stripe.exception.SignatureVerificationException;
@@ -21,11 +21,13 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
 import java.util.UUID;
 
 @Slf4j
@@ -60,23 +62,23 @@ public class PaymentController {
         return ResponseEntity.ok(response);
     }
 
-    @PostMapping("/webhook")
+    @PostMapping(value = "/webhook", consumes = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Stripe webhook endpoint", description = "Handles Stripe webhook events")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Webhook received"),
         @ApiResponse(responseCode = "400", description = "Invalid signature")
     })
-    public ResponseEntity<WebhookResponse> handleStripeWebhook(
+    public ResponseEntity<Map<String, Boolean>> handleStripeWebhook(
             @RequestBody String payload,
             @RequestHeader("Stripe-Signature") String stripeSignature) {
 
         log.info("Received Stripe webhook");
         try {
             paymentService.handleWebhook(payload, stripeSignature);
-            return ResponseEntity.ok(new WebhookResponse(true));
+            return ResponseEntity.ok(Map.of("received", true));
         } catch (SignatureVerificationException e) {
             log.error("Invalid webhook signature", e);
-            return ResponseEntity.badRequest().body(new WebhookResponse(false));
+            return ResponseEntity.badRequest().build();
         }
     }
 
@@ -163,7 +165,8 @@ public class PaymentController {
         log.info("Issuing refund for payment: {}", paymentId);
 
         if (refundRequest == null) {
-            refundRequest = new RefundRequest(null, "Refund requested");
+            refundRequest = new RefundRequest();
+            refundRequest.setReason("Admin initiated refund");
         }
 
         RefundResponse response = paymentService.issueRefund(paymentId, refundRequest);
@@ -199,21 +202,5 @@ public class PaymentController {
         log.info("Getting payment statistics");
         PaymentStatsResponse response = paymentService.getPaymentStats();
         return ResponseEntity.ok(response);
-    }
-
-    // Inner classes for request/response
-    public static class InitiatePaymentRequest {
-        private UUID appointmentId;
-
-        public UUID getAppointmentId() { return appointmentId; }
-        public void setAppointmentId(UUID appointmentId) { this.appointmentId = appointmentId; }
-    }
-
-    public static class WebhookResponse {
-        private boolean received;
-
-        public WebhookResponse(boolean received) { this.received = received; }
-        public boolean isReceived() { return received; }
-        public void setReceived(boolean received) { this.received = received; }
     }
 }
