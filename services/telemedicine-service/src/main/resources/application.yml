@@ -33,6 +33,12 @@ springdoc:
   swagger-ui:
     path: /api/telemedicine/swagger-ui.html
 
+springdoc:
+  api-docs:
+    path: /api/telemedicine/v3/api-docs
+  swagger-ui:
+    path: /api/telemedicine/swagger-ui.html
+
 # Agora
 agora:
   appId: ${AGORA_APP_ID}
