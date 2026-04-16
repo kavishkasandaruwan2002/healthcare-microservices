@@ -1,9 +1,9 @@
 import { create } from 'zustand';
 
 export interface User {
-  id: number;
+  id: string; // Changed from number to string to handle MongoDB IDs
   email: string;
-  role: 'PATIENT' | 'DOCTOR' | 'ADMIN';
+  role: 'ROLE_PATIENT' | 'ROLE_DOCTOR' | 'ROLE_ADMIN' | 'PATIENT' | 'DOCTOR' | 'ADMIN';
   name?: string;
 }
 
