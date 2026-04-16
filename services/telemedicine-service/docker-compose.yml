@@ -1,0 +1,48 @@
+version: '3.8'
+services:
+  tele-postgres:
+    image: postgres:15-alpine
+    container_name: tele-postgres
+    environment:
+      POSTGRES_DB: medisync_tele
+      POSTGRES_USER: tele_user
+      POSTGRES_PASSWORD: tele_pass
+    ports:
+      - "5434:5432"
+    volumes:
+      - tele_postgres_data:/var/lib/postgresql/data
+    networks:
+      - medisync-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tele_user -d medisync_tele"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  telemedicine-service:
+    build: .
+    container_name: telemedicine-service
+    ports:
+      - "8084:8084"
+    env_file:
+      - .env
+    environment:
+      - DB_HOST=tele-postgres
+    depends_on:
+      tele-postgres:
+        condition: service_healthy
+    networks:
+      - medisync-network
+    restart: on-failure
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8084/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  tele_postgres_data:
+
+networks:
+  medisync-network:
+    external: true
