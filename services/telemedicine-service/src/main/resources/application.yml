@@ -7,9 +7,9 @@ spring:
 
   # PostgreSQL Database
   datasource:
-    url: jdbc:postgresql://localhost:5432/telemedicine_db
-    username: postgres
-    password: postgres
+    url: jdbc:postgresql://${POSTGRES_HOST:postgres}:5432/telemedicine_db
+    username: ${POSTGRES_USER:postgres}
+    password: ${POSTGRES_PASSWORD:postgres}
     driver-class-name: org.postgresql.Driver
 
   # JPA / Hibernate
@@ -25,7 +25,7 @@ spring:
 eureka:
   client:
     serviceUrl:
-      defaultZone: ${EUREKA_SERVER:http://localhost:8761/eureka/}
+      defaultZone: ${EUREKA_SERVER:http://eureka:8761/eureka/}
 
 springdoc:
   api-docs:
