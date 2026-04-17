@@ -172,7 +172,7 @@ export default function DoctorAppointments() {
   // ── Fetch Patients (for prescription dropdown)
   const fetchPatients = useCallback(async () => {
     try {
-      const res = await api.get('/patients')
+      const res = await api.get('/patients/all')
       setPatients(Array.isArray(res.data) ? res.data : [])
     } catch (err: any) {
       console.warn('Could not load patients list:', err?.message)
@@ -291,7 +291,7 @@ export default function DoctorAppointments() {
       }
 
       // 1. Save prescription
-      await api.post('/prescriptions', prescriptionData)
+      await api.post(`/doctors/${doctorProfile.id}/prescriptions`, prescriptionData)
 
       // 2. Send email if enabled
       if (prescriptionForm.sendEmail && selectedPatient.email) {

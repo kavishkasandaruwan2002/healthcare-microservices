@@ -101,8 +101,7 @@ export default function DoctorPrescriptionsPage() {
     try {
       setLoading(true)
       if (user?.id) {
-        // Fetch prescriptions issued by this doctor
-        const res = await api.get(`/prescriptions/doctor/${user.id}`)
+        const res = await api.get(`/doctors/${user.id}/prescriptions`)
         setPrescriptions(Array.isArray(res.data) ? res.data : [])
       }
     } catch (err: any) {
@@ -139,7 +138,7 @@ export default function DoctorPrescriptionsPage() {
         .map(m => m.trim())
         .filter(m => m.length > 0)
 
-      await api.post(`/prescriptions`, {
+      await api.post(`/doctors/${doctorProfile.id}/prescriptions`, {
         doctorId: doctorProfile.id,
         patientName: newPrescription.patientName,
         diagnosis: newPrescription.diagnosis,
@@ -170,7 +169,7 @@ export default function DoctorPrescriptionsPage() {
     if (!confirm('Are you sure you want to delete this prescription?')) return
 
     try {
-      await api.delete(`/prescriptions/${prescriptionId}`)
+      await api.delete(`/doctors/${user?.id}/prescriptions/${prescriptionId}`)
       toast.success('Prescription deleted successfully')
       await fetchPrescriptions()
     } catch (err: any) {
@@ -180,7 +179,7 @@ export default function DoctorPrescriptionsPage() {
 
   const handleRevokePrescription = async (prescriptionId: string) => {
     try {
-      await api.put(`/prescriptions/${prescriptionId}`, { status: 'Revoked' })
+      await api.put(`/doctors/${user?.id}/prescriptions/${prescriptionId}`, { status: 'Revoked' })
       toast.success('Prescription revoked successfully')
       await fetchPrescriptions()
     } catch (err: any) {

@@ -26,4 +26,18 @@ public class PrescriptionController {
     public ResponseEntity<List<Prescription>> getPrescriptions(@PathVariable String doctorId) {
         return ResponseEntity.ok(prescriptionService.getPrescriptionsByDoctor(doctorId));
     }
+
+    @DeleteMapping("/{prescriptionId}")
+    public ResponseEntity<Void> deletePrescription(@PathVariable String doctorId, @PathVariable String prescriptionId) {
+        prescriptionService.deletePrescription(prescriptionId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PutMapping("/{prescriptionId}")
+    public ResponseEntity<Prescription> updatePrescription(
+            @PathVariable String doctorId,
+            @PathVariable String prescriptionId,
+            @RequestBody Prescription prescription) {
+        return ResponseEntity.ok(prescriptionService.updatePrescription(prescriptionId, prescription));
+    }
 }
