@@ -272,7 +272,7 @@ services:
       - "${FRONTEND_PORT:-3000}:3000"
     environment:
       - NEXT_PUBLIC_API_BASE_URL=http://localhost:8085
-      - NEXT_PUBLIC_TELE_API_URL=http://localhost:8084
+      - NEXT_PUBLIC_TELE_API_URL=http://localhost:8085/api/telemedicine
     depends_on:
       - gateway
     networks:
