@@ -228,6 +228,8 @@ services:
   telemedicine-service:
     build: services/telemedicine-service
     container_name: telemedicine-service
+    ports:
+      - "8084:8080"
     environment:
       - AGORA_APP_ID=${AGORA_APP_ID}
       - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE:-docker}

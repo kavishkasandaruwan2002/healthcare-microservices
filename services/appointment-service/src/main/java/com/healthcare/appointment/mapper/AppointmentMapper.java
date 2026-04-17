@@ -17,6 +17,8 @@ public class AppointmentMapper {
 
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ISO_DATE;
     private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ISO_TIME;
+    private static final DateTimeFormatter TIME_FORMATTER_HM =
+            DateTimeFormatter.ofPattern("HH:mm");
 
     /**
      * Map Request DTO to Entity (with LocalDateTime)
@@ -39,8 +41,17 @@ public class AppointmentMapper {
      */
     public Appointment toEntity(AppointmentBookingRequest request) {
         try {
-            LocalDate date = LocalDate.parse(request.getDate(), DATE_FORMATTER);
-            LocalTime time = LocalTime.parse(request.getTime());
+            LocalDate date = LocalDate.parse(request.getDate()); // ISO_LOCAL_DATE handles YYYY-MM-DD
+
+            // Explicitly handle both "HH:mm" and "HH:mm:ss"
+            LocalTime time;
+            String rawTime = request.getTime().trim();
+            if (rawTime.length() == 5) { // "HH:mm"
+                time = LocalTime.parse(rawTime, TIME_FORMATTER_HM);
+            } else {
+                time = LocalTime.parse(rawTime); // "HH:mm:ss" or full ISO
+            }
+
             LocalDateTime appointmentTime = LocalDateTime.of(date, time);
 
             return Appointment.builder()
@@ -54,7 +65,9 @@ public class AppointmentMapper {
                     .notes(request.getNotes())
                     .build();
         } catch (Exception e) {
-            throw new RuntimeException("Invalid date/time format. Expected date: YYYY-MM-DD, time: HH:mm", e);
+            throw new RuntimeException(
+                "Invalid date/time format. Expected date: YYYY-MM-DD, time: HH:mm — got: date='"
+                + request.getDate() + "', time='" + request.getTime() + "'", e);
         }
     }
 

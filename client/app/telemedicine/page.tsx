@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useAuthStore } from '@/store/authStore'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { AnimatedButton } from '@/components/ui/AnimatedButton'
+import api from '@/services/api'
 import { telemedicineApiService, type SessionResponse, type TokenResponse } from '@/services/telemedicineApi'
 import {
   Mic,
@@ -19,7 +20,8 @@ import {
   Clock,
   Settings,
   MoreVertical,
-  Activity
+  Activity,
+  ArrowRight
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import type { IAgoraRTCClient, IMicrophoneAudioTrack, ICameraVideoTrack, IAgoraRTCRemoteUser } from 'agora-rtc-sdk-ng'
@@ -48,6 +50,10 @@ function TelemedicineContent() {
   const [sessionData, setSessionData] = useState<SessionResponse | null>(null)
   const [isJoining, setIsJoining] = useState(false)
   const [joinError, setJoinError] = useState<string | null>(null)
+  
+  // Selection State (when no ID is provided)
+  const [availableAppointments, setAvailableAppointments] = useState<any[]>([])
+  const [loadingAppointments, setLoadingAppointments] = useState(false)
 
   const localVideoRef = useRef<HTMLDivElement>(null)
   const remoteVideoRef = useRef<HTMLDivElement>(null)
@@ -55,8 +61,30 @@ function TelemedicineContent() {
   // Join logic
   useEffect(() => {
     if (!isAuthenticated || !user) return
+    
     if (!sessionId && !appointmentId) {
-      setJoinError("No session or appointment ID provided.")
+      // Logic for sidebar click without ID
+      const fetchTeleAppointments = async () => {
+        setLoadingAppointments(true)
+        try {
+          const res = await api.get(`/appointments/patient/${user.id}`)
+          // Filter for confirmed telemedicine appointments
+          const tele = res.data.filter((a: any) => 
+            a.appointmentType === 'TELEMEDICINE' && 
+            (a.status === 'CONFIRMED' || a.status === 'PENDING')
+          )
+          setAvailableAppointments(tele)
+          
+          // If only one, maybe auto-navigate? Let's show the list for clarity
+          // setJoinError("Please select an appointment to join.")
+        } catch (e) {
+          console.error('Failed to fetch tele-appointments', e)
+          setJoinError("Could not find any active telemedicine sessions.")
+        } finally {
+          setLoadingAppointments(false)
+        }
+      }
+      fetchTeleAppointments()
       return
     }
 
@@ -223,22 +251,87 @@ function TelemedicineContent() {
     </div>
   )
 
-  if (joinError) return (
+  if (joinError || (!sessionId && !appointmentId && !loadingAppointments && availableAppointments.length === 0)) return (
     <div className="flex h-screen items-center justify-center bg-slate-950 text-white font-outfit">
       <div className="text-center space-y-6 max-w-md p-8 glass-dark rounded-3xl">
         <div className="h-20 w-20 bg-rose-500/20 rounded-full flex items-center justify-center mx-auto">
           <PhoneOff className="h-10 w-10 text-rose-400" />
         </div>
         <div className="space-y-2">
-          <h2 className="text-2xl font-bold">Connection Failed</h2>
-          <p className="text-slate-400">{joinError}</p>
+          <h2 className="text-2xl font-bold">{joinError ? "Connection Failed" : "No Sessions Found"}</h2>
+          <p className="text-slate-400">{joinError || "You don't have any confirmed telemedicine appointments at the moment."}</p>
         </div>
         <button
-          onClick={() => router.back()}
+          onClick={() => router.push('/patient/dashboard')}
           className="w-full py-4 bg-primary-600 rounded-2xl font-bold hover:bg-primary-700 transition-all hover:scale-[1.02] active:scale-[0.98]"
         >
-          Return to Hub
+          Return to Dashboard
         </button>
+      </div>
+    </div>
+  )
+
+  if (!sessionId && !appointmentId && availableAppointments.length > 0) return (
+    <div className="flex h-screen items-center justify-center bg-slate-950 text-white font-outfit p-6">
+      <div className="w-full max-w-2xl space-y-8 animate-in fade-in slide-in-from-bottom-5 duration-700">
+        <div className="text-center space-y-2">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary-500/10 border border-primary-500/20 text-primary-400 text-xs font-black uppercase tracking-widest mb-4">
+            <Activity className="h-3.5 w-3.5" /> Virtual Care Hub
+          </div>
+          <h1 className="text-4xl font-black tracking-tight">Select Session to Join</h1>
+          <p className="text-slate-400 text-lg">Pick an active appointment to start your secure video consultation.</p>
+        </div>
+
+        <div className="grid gap-4">
+          {availableAppointments.map((apt) => (
+            <motion.div
+              key={apt.id}
+              whileHover={{ scale: 1.02, x: 10 }}
+              whileTap={{ scale: 0.98 }}
+              className="group cursor-pointer p-6 rounded-3xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-primary-500/50 transition-all flex items-center justify-between shadow-2xl"
+              onClick={() => router.push(`/telemedicine?appointmentId=${apt.id}`)}
+            >
+              <div className="flex items-center gap-5">
+                <div className="h-16 w-16 rounded-2xl bg-primary-500/20 flex items-center justify-center text-primary-400 border border-primary-500/30 group-hover:bg-primary-500 group-hover:text-white transition-colors">
+                   <VideoIcon className="h-8 w-8" />
+                </div>
+                <div>
+                   <h3 className="text-xl font-bold text-white mb-1">Dr. {apt.doctorName || 'Specialist'}</h3>
+                   <div className="flex items-center gap-3 text-sm text-slate-400">
+                      <span className="flex items-center gap-1.5"><Clock className="h-4 w-4" /> {apt.time || 'Scheduled'}</span>
+                      <span className="h-1 w-1 rounded-full bg-slate-700" />
+                      <span className="text-primary-400 font-bold uppercase tracking-tighter">{apt.status}</span>
+                   </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-4">
+                 <div className="hidden md:flex flex-col items-end mr-4">
+                    <span className="text-xs font-black text-slate-500 uppercase tracking-widest">Appointment ID</span>
+                    <span className="text-sm font-mono text-slate-300">#{apt.id.slice(0, 8)}</span>
+                 </div>
+                 <button className="h-12 w-12 rounded-full bg-primary-600 flex items-center justify-center text-white shadow-lg shadow-primary-600/30 group-hover:scale-110 transition-transform">
+                    <ArrowRight className="h-6 w-6" />
+                 </button>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+
+        <button 
+          onClick={() => router.push('/patient/dashboard')}
+          className="w-full py-4 text-slate-500 font-bold hover:text-white transition-colors"
+        >
+          Nevermind, take me back
+        </button>
+      </div>
+    </div>
+  )
+
+  if (loadingAppointments) return (
+    <div className="flex h-screen items-center justify-center bg-slate-950 text-white font-outfit">
+      <div className="text-center space-y-4">
+        <div className="h-16 w-16 border-4 border-primary-500 border-t-transparent rounded-full animate-spin mx-auto" />
+        <p className="text-slate-300 font-medium">Scanning for active sessions...</p>
       </div>
     </div>
   )
