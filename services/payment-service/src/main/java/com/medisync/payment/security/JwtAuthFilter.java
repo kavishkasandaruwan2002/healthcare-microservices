@@ -48,8 +48,12 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                     authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                     SecurityContextHolder.getContext().setAuthentication(authToken);
                 }
+            } else {
+                System.err.println("JWT isValid returned false!");
             }
         } catch (Exception e) {
+            System.err.println("JWT Auth Filter Exception: " + e.getMessage());
+            e.printStackTrace();
             // Log error if needed, but don't interrupt filter chain
         }
 

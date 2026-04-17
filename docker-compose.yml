@@ -189,9 +189,18 @@ services:
     build: services/payment-service
     container_name: payment-service
     environment:
-      - STRIPE_API_KEY=${STRIPE_API_KEY}
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY:-sk_test_1234}
+      - STRIPE_PUBLISHABLE_KEY=${STRIPE_PUBLISHABLE_KEY:-pk_test_1234}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET:-whsec_1234}
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=telemedicine_db
+      - DB_USERNAME=postgres
+      - DB_PASSWORD=postgres
       - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE:-docker}
       - EUREKA_SERVER=${EUREKA_SERVER:-http://eureka:8761/eureka/}
+      - JWT_SECRET=${JWT_SECRET:-357638792F423F4528482B4D6251655468576D5A7134743777217A25432A462D}
+      - SERVICE_SECRET=${SERVICE_SECRET:-internal_service_secret_key}
     depends_on:
       eureka:
         condition: service_healthy

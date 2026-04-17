@@ -40,7 +40,6 @@ public class PaymentController {
     private final PaymentService paymentService;
 
     @PostMapping("/initiate")
-    @PreAuthorize("hasRole('PATIENT')")
     @Operation(summary = "Initiate a payment", description = "Creates a Stripe PaymentIntent and returns clientSecret to frontend")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Payment initiated successfully",
