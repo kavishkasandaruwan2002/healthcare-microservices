@@ -4,17 +4,22 @@ import * as React from "react"
 import { motion, HTMLMotionProps } from "framer-motion"
 import { cn } from "@/lib/utils"
 import { Loader2 } from "lucide-react"
+import { Slot } from "@radix-ui/react-slot"
 
 interface AnimatedButtonProps extends HTMLMotionProps<"button"> {
   variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'glass'
   size?: 'sm' | 'md' | 'lg' | 'xl'
   isLoading?: boolean
+  asChild?: boolean
   children: React.ReactNode
 }
 
+const MotionSlot = motion(Slot)
+
 export const AnimatedButton = React.forwardRef<HTMLButtonElement, AnimatedButtonProps>(
-  ({ className, variant = "primary", size = "md", isLoading, children, disabled, ...props }, ref) => {
+  ({ className, variant = "primary", size = "md", isLoading, asChild = false, children, disabled, ...props }, ref) => {
     
+    const Comp = (asChild ? MotionSlot : motion.button) as any
     const variants = {
       primary: "bg-primary-600 text-white hover:bg-primary-700 shadow-lg shadow-primary-600/20",
       secondary: "bg-accent-600 text-white hover:bg-accent-700 shadow-lg shadow-accent-600/20",
@@ -31,7 +36,7 @@ export const AnimatedButton = React.forwardRef<HTMLButtonElement, AnimatedButton
     }
 
     return (
-      <motion.button
+      <Comp
         ref={ref}
         whileHover={{ scale: 1.02 }}
         whileTap={{ scale: 0.98 }}
@@ -52,7 +57,7 @@ export const AnimatedButton = React.forwardRef<HTMLButtonElement, AnimatedButton
         ) : (
           children
         )}
-      </motion.button>
+      </Comp>
     )
   }
 )

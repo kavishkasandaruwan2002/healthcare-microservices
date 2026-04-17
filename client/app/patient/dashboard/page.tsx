@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { useAuthStore } from '@/store/authStore'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import api from '@/services/api'
 import { Sidebar } from '@/components/ui/Sidebar'
 import { GlassCard } from '@/components/ui/GlassCard'
@@ -51,6 +52,11 @@ export default function PatientDashboard() {
   const router = useRouter()
   const [appointments, setAppointments] = useState([])
   const [loading, setLoading] = useState(true)
+  const [hasMounted, setHasMounted] = useState(false)
+
+  useEffect(() => {
+    setHasMounted(true)
+  }, [])
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -71,7 +77,7 @@ export default function PatientDashboard() {
     fetchAppointments()
   }, [user, isAuthenticated, router])
 
-  if (!isAuthenticated) return null
+  if (!hasMounted || !isAuthenticated) return null
 
   const stats = [
     { label: 'Upcoming', value: appointments.length, icon: <Calendar className="h-6 w-6" />, color: 'text-primary-600', bg: 'bg-primary-50' },
@@ -102,8 +108,10 @@ export default function PatientDashboard() {
             <button className="flex h-12 w-12 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-400 transition-all hover:bg-slate-50 hover:text-primary-600">
               <Bell className="h-5 w-5" />
             </button>
-            <AnimatedButton className="h-12 gap-2 shadow-none" onClick={() => router.push('/patient/appointments')}>
-              <Plus className="h-4 w-4" /> Book Appointment
+            <AnimatedButton asChild className="h-12 gap-2 shadow-none w-full sm:w-auto">
+              <Link href="/patient/appointments">
+                <Plus className="h-4 w-4" /> Book Appointment
+              </Link>
             </AnimatedButton>
           </motion.div>
         </header>
@@ -151,24 +159,26 @@ export default function PatientDashboard() {
                   <h3 className="text-xl font-bold text-slate-900">Heart Rate Monitoring</h3>
                   <p className="text-sm text-slate-500">Stability data from your connected devices</p>
                 </div>
-                <div className="h-[300px] w-full p-4">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={chartData}>
-                      <defs>
-                        <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.2} />
-                          <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                      <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} />
-                      <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} />
-                      <Tooltip
-                        contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
-                      />
-                      <Area type="monotone" dataKey="value" stroke="#3b82f6" strokeWidth={4} fillOpacity={1} fill="url(#colorValue)" />
-                    </AreaChart>
-                  </ResponsiveContainer>
+                <div className="h-[300px] w-full p-4 min-h-[300px]">
+                  {hasMounted && (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart data={chartData}>
+                        <defs>
+                          <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.2} />
+                            <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} />
+                        <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} />
+                        <Tooltip
+                          contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                        />
+                        <Area type="monotone" dataKey="value" stroke="#3b82f6" strokeWidth={4} fillOpacity={1} fill="url(#colorValue)" />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  )}
                 </div>
               </GlassCard>
             </motion.div>
@@ -230,8 +240,10 @@ export default function PatientDashboard() {
                     </div>
                     <h4 className="text-xl font-bold text-slate-900">No appointments scheduled</h4>
                     <p className="max-w-[280px] text-slate-500 mt-2 mb-8 italic">Your upcoming virtual consultations will appear here.</p>
-                    <AnimatedButton variant="outline" size="md" onClick={() => router.push('/patient/appointments')}>
-                      Find a Doctor
+                    <AnimatedButton variant="outline" size="md" asChild>
+                      <Link href="/doctor">
+                        Find a Doctor
+                      </Link>
                     </AnimatedButton>
                   </GlassCard>
                 )}

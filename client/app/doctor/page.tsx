@@ -174,9 +174,11 @@ export default function DoctorsPage() {
                     </div>
                   </div>
 
-                  {/* Buttons */}
                   <div className="mt-4 space-y-2">
-                    <Button className="w-full bg-blue-600 hover:bg-blue-700 font-semibold h-10">
+                    <Button 
+                      onClick={() => router.push('/patient/appointments')}
+                      className="w-full bg-blue-600 hover:bg-blue-700 font-semibold h-10"
+                    >
                       <Calendar className="h-4 w-4 mr-2" />
                       Book Appointment
                     </Button>

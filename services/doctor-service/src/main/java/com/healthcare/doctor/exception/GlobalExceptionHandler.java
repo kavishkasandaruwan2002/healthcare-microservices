@@ -20,10 +20,16 @@ public class GlobalExceptionHandler {
 
         Map<String, Object> body = new HashMap<>();
         body.put("error", ex.getMessage());
-        body.put("status", HttpStatus.INTERNAL_SERVER_ERROR.value());
-        body.put("message", "An error occurred while processing your request");
+        
+        HttpStatus status = HttpStatus.INTERNAL_SERVER_ERROR;
+        if (ex.getMessage() != null && ex.getMessage().contains("not found")) {
+            status = HttpStatus.NOT_FOUND;
+        }
+        
+        body.put("status", status.value());
+        body.put("message", ex.getMessage());
 
-        return new ResponseEntity<>(body, HttpStatus.INTERNAL_SERVER_ERROR);
+        return new ResponseEntity<>(body, status);
     }
 
     @ExceptionHandler(Exception.class)
