@@ -21,6 +21,12 @@ public class ServiceAuthFilter extends OncePerRequestFilter {
     protected boolean shouldNotFilter(HttpServletRequest request){ return !("POST".equalsIgnoreCase(request.getMethod()) && "/api/v1/sessions/create".equals(request.getRequestURI())); }
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
+
+        if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
+        filterChain.doFilter(request, response);
+        return;
+    }
+
         String provided = request.getHeader("X-Service-Secret");
         if(serviceSecret.equals(provided)){
             var auth = new UsernamePasswordAuthenticationToken(new UserPrincipal("SERVICE","SERVICE"), null, List.of(new SimpleGrantedAuthority("ROLE_SERVICE")));

@@ -231,16 +231,27 @@ services:
     ports:
       - "8084:8080"
     environment:
-      - AGORA_APP_ID=${AGORA_APP_ID}
       - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE:-docker}
       - EUREKA_SERVER=${EUREKA_SERVER:-http://eureka:8761/eureka/}
-      - POSTGRES_HOST=postgres
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=telemedicine_db
+      - DB_USERNAME=postgres
+      - DB_PASSWORD=postgres
+      - AGORA_APP_ID=${AGORA_APP_ID}
+      - AGORA_APP_CERTIFICATE=${AGORA_APP_CERTIFICATE}
+      - JWT_SECRET=${JWT_SECRET}
+      - SERVICE_SECRET=${SERVICE_SECRET:-internal_service_secret_key}
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USERNAME=guest
+      - RABBITMQ_PASSWORD=guest
     depends_on:
       eureka:
         condition: service_healthy
       postgres:
+        condition: service_healthy
+      rabbitmq:
         condition: service_healthy
     networks:
       - healthcare-network
