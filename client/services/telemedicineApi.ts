@@ -1,7 +1,7 @@
 import axios from 'axios'
 
 const telemedicineApi = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_TELE_API_URL || 'http://localhost:8084/api/v1',
+  baseURL: process.env.NEXT_PUBLIC_TELE_API_URL || 'http://localhost:8085/api/telemedicine',
   headers: { 'Content-Type': 'application/json' },
 })
 

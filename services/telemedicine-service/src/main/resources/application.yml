@@ -1,5 +1,5 @@
 server:
-  port: 8080
+  port: 8084
 spring:
   application:
     name: telemedicine-service
@@ -29,4 +29,4 @@ agora:
   appId: ${AGORA_APP_ID}
   appCertificate: ${AGORA_APP_CERTIFICATE}
 jwt:
-  secret: ${JWT_SECRET:your_jwt_secret_key_here}
+  secret: ${JWT_SECRET:your_actual_shared_secret_here}

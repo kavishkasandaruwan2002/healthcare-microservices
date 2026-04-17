@@ -189,7 +189,7 @@ export default function PatientAppointments() {
     }
     setIsBooking(true);
     try {
-      await api.post("/appointments", {
+      const res = await api.post("/appointments", {
         patientId: user.id, //non-null now
         doctorId: selectedDoctor.id,
         date: selectedDate,
@@ -197,8 +197,15 @@ export default function PatientAppointments() {
         reason: reason || "General Consultation",
         appointmentType: appointmentType,
       });
-      setStep(4);
-      toast.success("Appointment booked successfully!");
+      
+      const newAptId = res.data?.id || res.data?.appointmentId;
+      if (newAptId) {
+        toast.success("Booking secured! Redirecting to payment...");
+        router.push(`/patient/payment?appointmentId=${newAptId}&doctorName=${encodeURIComponent(selectedDoctor.name)}&scheduledAt=${selectedDate}T${selectedTime.value}&fee=150`);
+      } else {
+        setStep(4);
+        toast.success("Appointment booked successfully!");
+      }
     } catch (err: any) {
       console.error(
         "Full error response:",
