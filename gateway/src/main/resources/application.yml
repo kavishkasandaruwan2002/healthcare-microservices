@@ -32,6 +32,8 @@ spring:
           uri: lb://patient-service
           predicates:
             - Path=/api/patients/**
+          filters:
+            - RewritePath=/api/patients/(?<segment>.*), /$\{segment}
         - id: doctor-service
           uri: lb://doctor-service
           predicates:

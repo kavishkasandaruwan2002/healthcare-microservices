@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 import ConstructionPlaceholder from "@/components/ui/ConstructionPlaceholder";
 
 import * as React from "react";

@@ -171,13 +171,15 @@ export default function PatientAppointments() {
     }
     setIsBooking(true)
     try {
+      const isoDateTime = `${selectedDate}T${selectedTime.value}:00`;
+
       await api.post('/appointments', {
         patientId: user?.id,
         doctorId:  selectedDoctor.id,
-        date:      selectedDate,           // YYYY-MM-DD ✓
-        time:      selectedTime.value,     // HH:mm ✓
+        date:      selectedDate,          // YYYY-MM-DD
+        time:      selectedTime.value,    // HH:mm
         reason:    reason || 'General Consultation',
-        appointmentType,
+        appointmentType: appointmentType,
       })
       setStep(4)
       toast.success('Appointment booked successfully!')
@@ -443,14 +445,14 @@ export default function PatientAppointments() {
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: i * 0.05 }}
                       >
-                        <GlassCard
+                        <GlassCard onClick={() => setSelectedDoctor(doc)}
                           className={cn(
                             'group cursor-pointer border-2 transition-all p-0 overflow-hidden',
                             selectedDoctor?.id === doc.id
                               ? 'border-primary-500 ring-4 ring-primary-500/10 shadow-xl'
                               : 'border-transparent hover:border-primary-200 hover:shadow-lg'
                           )}
-                          onClick={() => setSelectedDoctor(doc)}
+                          
                         >
                           <div className="aspect-[4/3] bg-slate-100 flex items-center justify-center overflow-hidden relative">
                             <img
@@ -683,7 +685,7 @@ export default function PatientAppointments() {
                     id="btn-confirm-booking"
                     size="xl"
                     className="w-full h-16 bg-slate-900 text-white shadow-xl shadow-slate-900/20"
-                    loading={isBooking}
+                    isLoading={isBooking}
                     onClick={handleBooking}
                   >
                     Confirm &amp; Book Appointment

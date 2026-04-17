@@ -14,7 +14,7 @@ interface AnimatedButtonProps extends HTMLMotionProps<"button"> {
   children: React.ReactNode
 }
 
-const MotionSlot = motion(Slot)
+const MotionSlot = motion.create(Slot)
 
 export const AnimatedButton = React.forwardRef<HTMLButtonElement, AnimatedButtonProps>(
   ({ className, variant = "primary", size = "md", isLoading, asChild = false, children, disabled, ...props }, ref) => {

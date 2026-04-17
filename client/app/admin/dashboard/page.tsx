@@ -2,10 +2,12 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { useAuthStore } from '@/store/authStore'
+import { GlassCard } from '@/components/ui/GlassCard'
 import { useRouter } from 'next/navigation'
 import api from '@/services/api'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
+import { cn } from '@/lib/utils'
 import { 
   Table, 
   TableHeader, 
@@ -20,7 +22,6 @@ import {
   Stethoscope, 
   Calendar, 
   CreditCard, 
-  LogOut, 
   ShieldCheck, 
   Trash2, 
   CheckCircle, 
@@ -34,10 +35,13 @@ import {
   LogOut,
   Cpu,
   Database,
-  Globe
+  Globe,
+  Sidebar
 } from 'lucide-react'
+import { AnimatedButton } from '@/components/ui/AnimatedButton'
+import { AnimatePresence, motion } from 'framer-motion'
 import { toast } from 'react-hot-toast'
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from 'recharts'
 
 interface Patient {
   _id?: string
