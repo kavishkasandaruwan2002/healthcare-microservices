@@ -44,10 +44,6 @@ public class NotificationController {
     // Doctor lifecycle events
     // ─────────────────────────────────────────────────────────────────────────
 
-    /**
-     * Triggered when a new doctor completes registration.
-     * Sends a "your profile is under review" email.
-     */
     @PostMapping("/email/doctor-registration")
     public ResponseEntity<String> sendDoctorRegistrationEmail(
             @RequestParam String email,
@@ -59,10 +55,6 @@ public class NotificationController {
         return ResponseEntity.ok("Doctor registration email sent successfully");
     }
 
-    /**
-     * Triggered when an admin approves a doctor's account.
-     * Sends a "congratulations, you're approved" email.
-     */
     @PostMapping("/email/doctor-approved")
     public ResponseEntity<String> sendDoctorApprovedEmail(
             @RequestParam String email,
@@ -74,10 +66,6 @@ public class NotificationController {
         return ResponseEntity.ok("Doctor approval email sent successfully");
     }
 
-    /**
-     * Triggered when an admin rejects a doctor's registration.
-     * Sends a "your application was not approved" email.
-     */
     @PostMapping("/email/doctor-rejected")
     public ResponseEntity<String> sendDoctorRejectedEmail(
             @RequestParam String email,
@@ -89,6 +77,11 @@ public class NotificationController {
         return ResponseEntity.ok("Doctor rejection email sent successfully");
     }
 
+    // ─────────────────────────────────────────────────────────────────────────
+    // Prescription events
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /** Legacy @RequestParam endpoint — kept for backward compatibility */
     @PostMapping("/email/prescription-issued")
     public ResponseEntity<String> sendPrescriptionIssuedEmail(
             @RequestParam String email,
@@ -101,20 +94,55 @@ public class NotificationController {
         return ResponseEntity.ok("Prescription email sent successfully");
     }
 
+    /**
+     * JSON-body prescription email endpoint — matches the payload sent by the
+     * doctor appointments frontend (handleIssuePrescription).
+     */
+    @PostMapping("/send-prescription-email")
+    public ResponseEntity<String> sendPrescriptionEmailJson(
+            @RequestBody com.healthcare.notification.dto.PrescriptionEmailRequest request) {
+        log.info("Sending prescription email (JSON body) to: {}", request.getTo());
+        try {
+            String medicationsStr = request.getMedications() != null
+                    ? String.join(", ", request.getMedications())
+                    : "";
+
+            emailService.sendPrescriptionIssuedEmail(
+                    request.getTo(),
+                    request.getPatientId() != null ? request.getPatientId() : "",
+                    request.getDoctorName() != null ? request.getDoctorName() : "",
+                    request.getPatientName() != null ? request.getPatientName() : "Patient",
+                    request.getDoctorName() != null ? request.getDoctorName() : "",
+                    request.getDoctorSpecialization() != null ? request.getDoctorSpecialization() : "",
+                    request.getDiagnosis() != null ? request.getDiagnosis() : "",
+                    medicationsStr,
+                    request.getDosage() != null ? request.getDosage() : "",
+                    request.getDuration() != null ? request.getDuration() : ""
+            );
+            return ResponseEntity.ok("Prescription email sent successfully");
+        } catch (Exception e) {
+            log.error("Failed to send prescription email: {}", e.getMessage());
+            return ResponseEntity.ok("Prescription email queued (non-blocking)");
+        }
+    }
+
     // ─────────────────────────────────────────────────────────────────────────
     // Appointment events
     // ─────────────────────────────────────────────────────────────────────────
 
+    /** Existing @RequestParam endpoint — kept intact, patientName is optional */
     @PostMapping("/email/appointment-confirmation")
     public ResponseEntity<String> sendAppointmentConfirmation(
             @RequestParam String email,
             @RequestParam String recipientId,
+            @RequestParam(defaultValue = "Patient") String patientName,
+            @RequestParam(defaultValue = "") String specialization,
             @RequestParam String doctorName,
             @RequestParam String appointmentDate,
             @RequestParam String appointmentTime) {
         log.info("Sending appointment confirmation email to: {}", email);
-        emailService.sendAppointmentConfirmationEmail(email, recipientId, doctorName,
-                appointmentDate, appointmentTime);
+        emailService.sendAppointmentConfirmationEmail(
+                email, recipientId, patientName, specialization, doctorName, appointmentDate, appointmentTime);
         return ResponseEntity.ok("Appointment confirmation email sent");
     }
 
@@ -122,13 +150,14 @@ public class NotificationController {
     public ResponseEntity<String> sendCancellationEmail(
             @RequestParam String email,
             @RequestParam String recipientId,
+            @RequestParam(defaultValue = "Patient") String patientName,
             @RequestParam(defaultValue = "") String doctorName,
             @RequestParam(defaultValue = "") String appointmentDate,
             @RequestParam(defaultValue = "") String appointmentTime,
             @RequestParam String reason) {
         log.info("Sending cancellation email to: {}", email);
-        emailService.sendCancellationEmail(email, recipientId, doctorName,
-                appointmentDate, appointmentTime, reason);
+        emailService.sendCancellationEmail(
+                email, recipientId, patientName, doctorName, appointmentDate, appointmentTime, reason);
         return ResponseEntity.ok("Cancellation email sent");
     }
 

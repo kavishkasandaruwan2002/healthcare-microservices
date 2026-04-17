@@ -48,17 +48,17 @@ public class DoctorService {
                 .yearsOfExperience(request.getYearsOfExperience())
                 .qualification(request.getQualification())
                 .hospitalAffiliation(request.getHospitalAffiliation())
-                .status("APPROVED")
-                .isVerified(true)
+                .status("PENDING")           // ✅ FIX: Changed from "APPROVED" to "PENDING"
+                .isVerified(false)           // ✅ FIX: Changed from true to false
                 .role("ROLE_DOCTOR")
                 .createdAt(System.currentTimeMillis())
                 .updatedAt(System.currentTimeMillis())
                 .build();
 
         Doctor savedDoctor = doctorRepository.save(doctor);
-        log.info("Doctor registered successfully: {}", savedDoctor.getEmail());
+        log.info("Doctor registered successfully with PENDING status: {}", savedDoctor.getEmail());
 
-        // Send registration confirmation email
+        // Send registration confirmation email (admin needs to verify)
         try {
             notificationClient.sendDoctorRegistrationEmail(
                     savedDoctor.getEmail(),
@@ -187,9 +187,17 @@ public class DoctorService {
     public void updateDoctorStatus(String id, String status, String rejectionReason) {
         Doctor doctor = getDoctorById(id);
         doctor.setStatus(status);
+        
+        // ✅ CORRECT: Only set isVerified=true when APPROVED by admin
         if ("APPROVED".equals(status)) {
             doctor.setIsVerified(true);
+            log.info("Doctor APPROVED and verified: {}", id);
+        } else if ("REJECTED".equals(status)) {
+            doctor.setIsVerified(false);
+            log.info("Doctor REJECTED: {}", id);
         }
+        // For PENDING status, isVerified stays as is (false)
+        
         doctor.setUpdatedAt(System.currentTimeMillis());
         doctorRepository.save(doctor);
         log.info("Doctor status updated: {} -> {}", id, status);
@@ -214,7 +222,7 @@ public class DoctorService {
     }
 
     public List<DoctorDTO> getPendingDoctors() {
-        log.info("Fetching pending doctors");
+        log.info("Fetching pending doctors for admin verification");
         return doctorRepository.findByStatus("PENDING")
                 .stream()
                 .map(this::mapToDTO)

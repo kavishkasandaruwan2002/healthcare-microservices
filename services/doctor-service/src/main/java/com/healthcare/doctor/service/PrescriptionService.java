@@ -33,7 +33,7 @@ public class PrescriptionService {
                     prescription.getPatientId(),
                     doctorId,
                     prescription.getPatientName(),
-                    prescription.getMedications()
+                    prescription.getMedications() != null ? String.join(", ", prescription.getMedications()) : ""
             );
         } catch (Exception ex) {
             log.warn("Failed to send prescription notification: {}", ex.getMessage());
@@ -44,5 +44,15 @@ public class PrescriptionService {
 
     public List<Prescription> getPrescriptionsByDoctor(String doctorId) {
         return prescriptionRepository.findByDoctorId(doctorId);
+    }
+
+    public void deletePrescription(String id) {
+        prescriptionRepository.deleteById(id);
+    }
+
+    public Prescription updatePrescription(String id, Prescription prescription) {
+        Prescription existing = prescriptionRepository.findById(id).orElseThrow(() -> new RuntimeException("Prescription not found"));
+        existing.setStatus(prescription.getStatus());
+        return prescriptionRepository.save(existing);
     }
 }

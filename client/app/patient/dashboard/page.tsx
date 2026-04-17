@@ -268,7 +268,11 @@ export default function PatientDashboard() {
                   <p className="mb-8 text-primary-50 text-sm font-medium leading-relaxed opacity-90">
                     Proprietary diagnostic engine to assess your health in seconds.
                   </p>
-                  <AnimatedButton variant="glass" className="w-full bg-white text-primary-900 hover:bg-slate-100 border-none font-bold shadow-lg">
+                  <AnimatedButton
+                    variant="glass"
+                    className="w-full bg-white text-primary-900 hover:bg-slate-100 border-none font-bold shadow-lg"
+                    onClick={() => router.push("/patient/ai-checker")}
+                  >
                     Check Symptoms Now
                   </AnimatedButton>
                 </div>

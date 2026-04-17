@@ -11,9 +11,22 @@ import java.time.LocalDateTime;
 @Builder
 public class AppointmentEvent {
     private String appointmentId;
+
     private String patientId;
+    private String patientName;
+    private String patientEmail;
+    private String patientPhone;
+
     private String doctorId;
+    private String doctorName;
+    private String doctorEmail;
+    private String doctorSpecialization;
+
     private LocalDateTime appointmentTime;
+    private String appointmentDate;   // YYYY-MM-DD string for convenience
+    private String appointmentTimeStr; // HH:mm string for convenience
+
     private AppointmentStatus status;
-    private String type; // CREATED, CANCELLED, COMPLETED
+    private String reason;
+    private String type; // CREATED, CONFIRMED, CANCELLED, COMPLETED
 }

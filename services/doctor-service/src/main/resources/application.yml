@@ -6,7 +6,7 @@ spring:
     name: doctor-service
   data:
     mongodb:
-      uri: ${SPRING_DATA_MONGODB_URI:mongodb://localhost:27017/doctor_db}
+      uri: ${SPRING_DATA_MONGODB_URI:mongodb+srv://Ayodya:Ayodya@cluster0.csn4fag.mongodb.net/HealthCareDB?retryWrites=true&w=majority&appName=Cluster0}
       auto-index-creation: true
 
 eureka:

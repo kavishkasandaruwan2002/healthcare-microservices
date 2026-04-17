@@ -25,5 +25,8 @@ public class AppointmentRequest {
     private int durationMinutes = 30; // Default 30 minutes
 
     private String reason;
+
+    private String appointmentType; // Optional: IN_PERSON, TELEMEDICINE
+    private String notes;
 }
 
