@@ -46,6 +46,8 @@ spring:
           uri: lb://payment-service
           predicates:
             - Path=/api/payments/**
+          filters:
+            - RewritePath=/api/payments/(?<segment>.*), /api/v1/payments/$\{segment}
         - id: notification-service
           uri: lb://notification-service
           predicates:
