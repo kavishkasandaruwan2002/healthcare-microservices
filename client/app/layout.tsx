@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { Outfit } from 'next/font/google'
 import './globals.css'
 import Providers from '@/components/Providers'
+import { GlobalLoading } from '@/components/ui/GlobalLoading'
 
 const outfit = Outfit({ subsets: ['latin'] })
 
@@ -23,6 +24,7 @@ export default function RootLayout({
           <div className="min-h-screen bg-mesh selection:bg-primary-100">
             {children}
           </div>
+          <GlobalLoading />
         </Providers>
       </body>
     </html>
