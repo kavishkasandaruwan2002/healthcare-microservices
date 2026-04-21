@@ -683,7 +683,7 @@ export default function PatientAppointments() {
                     id="btn-confirm-booking"
                     size="xl"
                     className="w-full h-16 bg-slate-900 text-white shadow-xl shadow-slate-900/20"
-                    loading={isBooking}
+                    isLoading={isBooking}
                     onClick={handleBooking}
                   >
                     Confirm &amp; Book Appointment

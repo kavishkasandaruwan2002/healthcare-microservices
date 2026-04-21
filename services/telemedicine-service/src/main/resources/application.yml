@@ -1,5 +1,5 @@
 server:
-  port: 8080
+  port: 8086
 
 spring:
   application:
@@ -35,10 +35,13 @@ springdoc:
 
 # Agora
 agora:
-  appId: ${AGORA_APP_ID}
-  appCertificate: ${AGORA_APP_CERTIFICATE}
+  app:
+    id: ${AGORA_APP_ID:your_agora_app_id}
+    certificate: ${AGORA_APP_CERTIFICATE:your_agora_app_certificate}
 
-# JWT
+service:
+  secret: ${SERVICE_SECRET:your-service-to-service-secret}
+
 jwt:
   secret: ${JWT_SECRET:your_jwt_secret_key_here}
 

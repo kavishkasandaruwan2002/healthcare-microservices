@@ -54,7 +54,7 @@ export default function DoctorsPage() {
       if (selectedSpecialization) {
         res = await api.get(`/doctors/specialization/${selectedSpecialization}`)
       } else {
-        res = await api.get('/doctors')
+        res = await api.get('/doctors/verified')
       }
       setDoctors(res.data)
     } catch (err: any) {
