@@ -217,7 +217,7 @@ export default function LoginPage() {
               <div className="space-y-3">
                  <div className="flex items-center justify-between">
                     <Label htmlFor="password">Security Key</Label>
-                    <Link href="#" className="text-xs font-bold text-primary-600 hover:text-primary-700 transition-colors underline-offset-4 hover:underline">
+                    <Link href="/forgot-password" className="text-xs font-bold text-primary-600 hover:text-primary-700 transition-colors underline-offset-4 hover:underline">
                         Forgot Key?
                     </Link>
                  </div>

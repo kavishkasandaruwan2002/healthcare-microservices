@@ -214,7 +214,7 @@ export default function PatientDashboard() {
                         </div>
                       </div>
                       <div className="flex gap-2 w-full md:w-auto">
-                        <AnimatedButton variant="glass" size="sm" className="flex-1 md:flex-none h-10 px-6">
+                        <AnimatedButton variant="glass" size="sm" className="flex-1 md:flex-none h-10 px-6" onClick={() => router.push(`/patient/appointments/${apt.id}`)}>
                           Details
                         </AnimatedButton>
                         <AnimatedButton variant="primary" size="sm" className="flex-1 md:flex-none h-10 px-6 bg-primary-600 shadow-primary-500/20" onClick={() => router.push(`/telemedicine/${apt.id}`)}>
