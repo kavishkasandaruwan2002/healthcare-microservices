@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { Sidebar } from '@/components/ui/Sidebar'
 import { GlassCard } from '@/components/ui/GlassCard'
@@ -26,6 +26,23 @@ export default function UploadRecordPage() {
     { name: 'Blood_Test_Report_Jan.pdf', size: '2.4 MB', status: 'Completed' },
     { name: 'X-Ray_Chest_Main.jpg', size: '5.8 MB', status: 'In Review' },
   ])
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFiles = e.target.files
+    if (selectedFiles && selectedFiles.length > 0) {
+      const newFiles = Array.from(selectedFiles).map(file => ({
+        name: file.name,
+        size: (file.size / (1024 * 1024)).toFixed(1) + ' MB',
+        status: 'In Review'
+      }))
+      setFiles(prev => [...newFiles, ...prev])
+    }
+  }
+
+  const handleSelectClick = () => {
+    fileInputRef.current?.click()
+  }
 
   return (
     <div className="flex min-h-screen bg-slate-50">
@@ -67,7 +84,19 @@ export default function UploadRecordPage() {
               </p>
               
               <div className="flex items-center gap-4">
-                <AnimatedButton variant="primary" className="h-12 px-8 shadow-xl shadow-primary-500/20 font-bold">
+                <input 
+                  type="file" 
+                  ref={fileInputRef} 
+                  onChange={handleFileChange} 
+                  className="hidden" 
+                  multiple 
+                  accept=".pdf,.jpg,.png,.docx"
+                />
+                <AnimatedButton 
+                  variant="primary" 
+                  className="h-12 px-8 shadow-xl shadow-primary-500/20 font-bold"
+                  onClick={handleSelectClick}
+                >
                   Select Files
                 </AnimatedButton>
               </div>

@@ -61,6 +61,26 @@ services:
       timeout: 5s
       retries: 10
 
+  postgres:
+    image: postgres:15
+    container_name: postgres-db
+    environment:
+      - POSTGRES_DB=telemedicine_db
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - healthcare-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   rabbitmq:
     image: rabbitmq:3-management
     container_name: rabbitmq
@@ -101,7 +121,7 @@ services:
     container_name: auth-service
     environment:
       - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE:-docker}
-      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/${MYSQL_DATABASE:-healthcare_db}
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/auth_db
       - SPRING_DATASOURCE_USERNAME=root
       - SPRING_DATASOURCE_PASSWORD=${MYSQL_ROOT_PASSWORD:-root}
       - EUREKA_SERVER=${EUREKA_SERVER:-http://eureka:8761/eureka/}
@@ -261,3 +281,4 @@ networks:
 volumes:
   mysql-data:
   mongo-data:
+  postgres-data:

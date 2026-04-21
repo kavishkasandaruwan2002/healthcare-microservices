@@ -30,11 +30,16 @@ export function Navbar() {
   const pathname = usePathname();
 
   const { scrollYProgress } = useScroll();
+  const [mounted, setMounted] = useState(false);
   const scaleX = useSpring(scrollYProgress, {
     stiffness: 100,
     damping: 30,
     restDelta: 0.001
   });
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -139,36 +144,38 @@ export function Navbar() {
 
           {/* Desktop Auth Actions */}
           <div className="hidden lg:flex items-center gap-3">
-            {isAuthenticated ? (
-              <div className="flex items-center gap-3 bg-white/50 backdrop-blur-sm p-1 rounded-2xl border border-slate-200/50">
-                <Link href={dashboardUrl}>
-                  <button className="flex items-center gap-2 pl-3 pr-4 py-2 text-sm font-bold text-slate-700 hover:text-primary-600 transition-colors">
-                    <User className="h-4 w-4" />
-                    <span>Account</span>
+            {mounted && (
+              isAuthenticated ? (
+                <div className="flex items-center gap-3 bg-white/50 backdrop-blur-sm p-1 rounded-2xl border border-slate-200/50">
+                  <Link href={dashboardUrl}>
+                    <div className="flex items-center gap-2 pl-3 pr-4 py-2 text-sm font-bold text-slate-700 hover:text-primary-600 transition-colors">
+                      <User className="h-4 w-4" />
+                      <span>Account</span>
+                    </div>
+                  </Link>
+                  <div className="h-4 w-[1px] bg-slate-200" />
+                  <button
+                    onClick={handleLogout}
+                    className="flex items-center gap-2 px-4 py-2 text-sm font-bold text-rose-500 hover:text-rose-600 transition-colors"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    <span>Exit</span>
                   </button>
-                </Link>
-                <div className="h-4 w-[1px] bg-slate-200" />
-                <button
-                  onClick={handleLogout}
-                  className="flex items-center gap-2 px-4 py-2 text-sm font-bold text-rose-500 hover:text-rose-600 transition-colors"
-                >
-                  <LogOut className="h-4 w-4" />
-                  <span>Exit</span>
-                </button>
-              </div>
-            ) : (
-              <div className="flex items-center gap-2">
-                <Link href="/login">
-                  <button className="px-6 py-2.5 text-sm font-bold text-slate-600 hover:text-primary-600 transition-all">
-                    Sign In
-                  </button>
-                </Link>
-                <Link href="/register">
-                  <AnimatedButton className="rounded-xl bg-slate-900 text-white shadow-xl shadow-slate-900/10 hover:bg-slate-800 transition-all h-11 px-8 text-sm font-bold">
-                    Join HealthPulse
-                  </AnimatedButton>
-                </Link>
-              </div>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <Link href="/login">
+                    <div className="px-6 py-2.5 text-sm font-bold text-slate-600 hover:text-primary-600 transition-all">
+                      Sign In
+                    </div>
+                  </Link>
+                  <Link href="/register">
+                    <div className="flex items-center justify-center rounded-xl bg-slate-900 text-white shadow-xl shadow-slate-900/10 hover:bg-slate-800 transition-all h-11 px-8 text-sm font-bold">
+                      Join HealthPulse
+                    </div>
+                  </Link>
+                </div>
+              )
             )}
           </div>
 
@@ -229,35 +236,37 @@ export function Navbar() {
 
                 <div className="h-[1px] bg-slate-100 my-4" />
 
-                {isAuthenticated ? (
-                  <div className="space-y-3">
-                    <Link href={dashboardUrl} onClick={() => setIsMobileMenuOpen(false)}>
-                      <div className="flex items-center gap-4 p-4 rounded-2xl bg-primary-600 text-white font-bold shadow-lg shadow-primary-500/20">
-                        <LayoutDashboard size={20} />
-                        <span>Go to Dashboard</span>
-                      </div>
-                    </Link>
-                    <button
-                      onClick={handleLogout}
-                      className="flex items-center gap-4 w-full p-4 rounded-2xl bg-rose-50 text-rose-600 font-bold hover:bg-rose-100 transition-colors"
-                    >
-                      <LogOut size={20} />
-                      <span>Log Out</span>
-                    </button>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    <Link href="/login" onClick={() => setIsMobileMenuOpen(false)}>
-                      <div className="p-4 rounded-2xl bg-slate-100 text-slate-900 font-bold text-center">
-                        Sign In
-                      </div>
-                    </Link>
-                    <Link href="/register" onClick={() => setIsMobileMenuOpen(false)}>
-                      <div className="p-4 rounded-2xl bg-slate-900 text-white font-bold text-center shadow-lg">
-                        Get Started Free
-                      </div>
-                    </Link>
-                  </div>
+                {mounted && (
+                  isAuthenticated ? (
+                    <div className="space-y-3">
+                      <Link href={dashboardUrl} onClick={() => setIsMobileMenuOpen(false)}>
+                        <div className="flex items-center gap-4 p-4 rounded-2xl bg-primary-600 text-white font-bold shadow-lg shadow-primary-500/20">
+                          <LayoutDashboard size={20} />
+                          <span>Go to Dashboard</span>
+                        </div>
+                      </Link>
+                      <button
+                        onClick={handleLogout}
+                        className="flex items-center gap-4 w-full p-4 rounded-2xl bg-rose-50 text-rose-600 font-bold hover:bg-rose-100 transition-colors"
+                      >
+                        <LogOut size={20} />
+                        <span>Log Out</span>
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      <Link href="/login" onClick={() => setIsMobileMenuOpen(false)}>
+                        <div className="p-4 rounded-2xl bg-slate-100 text-slate-900 font-bold text-center">
+                          Sign In
+                        </div>
+                      </Link>
+                      <Link href="/register" onClick={() => setIsMobileMenuOpen(false)}>
+                        <div className="p-4 rounded-2xl bg-slate-900 text-white font-bold text-center shadow-lg">
+                          Get Started Free
+                        </div>
+                      </Link>
+                    </div>
+                  )
                 )}
               </div>
 
