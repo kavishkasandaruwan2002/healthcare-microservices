@@ -33,7 +33,7 @@ import {
 
 export default function LandingPage() {
   const router = useRouter()
-  const { user, isAuthenticated } = useAuthStore()
+  const { user, isAuthenticated, logout } = useAuthStore()
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
@@ -49,9 +49,14 @@ export default function LandingPage() {
         router.push('/doctor/dashboard')
       } else if (role.includes('PATIENT')) {
         router.push('/patient/dashboard')
+      } else {
+        // Fallback if role is not recognized
+        console.warn('Unrecognized user role:', role);
+        logout();
+        router.push('/login');
       }
     }
-  }, [isAuthenticated, user, router])
+  }, [isAuthenticated, user, router, logout])
 
   // Show a loading state during redirection or the landing page for guests
   if (mounted && isAuthenticated && user) {

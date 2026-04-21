@@ -101,7 +101,7 @@ services:
     container_name: auth-service
     environment:
       - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE:-docker}
-      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/${MYSQL_DATABASE:-healthcare_db}
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/auth_db
       - SPRING_DATASOURCE_USERNAME=root
       - SPRING_DATASOURCE_PASSWORD=${MYSQL_ROOT_PASSWORD:-root}
       - EUREKA_SERVER=${EUREKA_SERVER:-http://eureka:8761/eureka/}
