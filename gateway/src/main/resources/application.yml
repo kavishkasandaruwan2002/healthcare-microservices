@@ -10,9 +10,7 @@ spring:
         cors-configurations:
           '[/**]':
             allowedOrigins: 
-              - "http://localhost:3000"
               - "http://localhost:3001"
-              - "http://localhost:3002"
             allowedMethods:
               - GET
               - POST
@@ -45,9 +43,9 @@ spring:
         - id: payment-service
           uri: lb://payment-service
           predicates:
-            - Path=/api/payments/**
+            - Path=/api/v1/payments/**
           filters:
-            - RewritePath=/api/payments/(?<segment>.*), /api/v1/payments/$\{segment}
+            - RewritePath=/api/v1/payments/(?<segment>.*), /api/v1/payments/$\{segment}
         - id: notification-service
           uri: lb://notification-service
           predicates:

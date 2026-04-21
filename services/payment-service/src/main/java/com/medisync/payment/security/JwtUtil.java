@@ -1,5 +1,5 @@
 package com.medisync.payment.security;
-
+import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
@@ -18,7 +18,7 @@ public class JwtUtil {
     private String secret;
 
     private SecretKey getSigningKey() {
-        byte[] keyBytes = secret.getBytes(StandardCharsets.UTF_8);
+        byte[] keyBytes = Decoders.BASE64.decode(secret);        
         return Keys.hmacShaKeyFor(keyBytes);
     }
 

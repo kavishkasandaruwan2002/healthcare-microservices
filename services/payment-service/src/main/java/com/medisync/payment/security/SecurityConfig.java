@@ -1,5 +1,6 @@
 package com.medisync.payment.security;
-
+import org.springframework.security.config.Customizer;
+import org.springframework.http.HttpMethod;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
@@ -31,23 +32,13 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-            .csrf(csrf -> csrf.disable())
-            .cors(cors -> cors.disable())
+            .csrf(csrf -> csrf.disable()) // Critical for POST requests
+            .cors(Customizer.withDefaults()) // Tell Spring to use the CORS filter
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll()
-                .requestMatchers("/api/v1/payments/webhook").permitAll()
-                .requestMatchers("/actuator/**").permitAll()
-                .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
-                .requestMatchers("/api/v1/payments/**").authenticated()
-                .anyRequest().authenticated()
-            )
-            .sessionManagement(session -> session
-                .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-            )
-            .authenticationProvider(authenticationProvider())
-            .addFilterBefore(serviceAuthFilter, UsernamePasswordAuthenticationFilter.class)
-            .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
-
+            .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll() // Allow preflight
+            .requestMatchers("/api/v1/payments/**").authenticated()
+            .anyRequest().permitAll()
+        );
         return http.build();
     }
 

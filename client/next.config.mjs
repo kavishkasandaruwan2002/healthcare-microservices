@@ -10,6 +10,10 @@ const nextConfig = {
     // This will ignore ESLint errors (like the 'core-webvitals' one you saw)
     ignoreDuringBuilds: true,
   },
+  webpack: (config) => {
+    config.resolve.fallback = { fs: false, net: false, tls: false };
+    return config;
+  },
 };
 
 export default nextConfig;
