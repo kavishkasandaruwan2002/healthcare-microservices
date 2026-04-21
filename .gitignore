@@ -23,8 +23,43 @@
 hs_err_pid*
 replay_pid*
 .idea/
-target/
-**/target/
+
+TECH_STACK.md
+.env
 *.env
+
+# Maven
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+.mvn/timing.properties
+.mvn/wrapper/maven-wrapper.jar
+
+# IDE
+.idea/
 .vscode/
-.DS_Store
+*.iml
+*.ipr
+*.iws
+
+# Application config (environment specific)
+application.properties
+application.yml
+
+# Testing
+test-output/
+surefire-reports/
+
+# Docker
+docker-compose.override.yml
+
+# API Collections
+*.postman_collection.json
+
+# Documentation (local development notes)
+README.md
