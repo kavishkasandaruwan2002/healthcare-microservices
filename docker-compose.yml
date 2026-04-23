@@ -175,6 +175,9 @@ services:
       - SPRING_DATA_MONGODB_URI=mongodb+srv://Ayodya:Ayodya@cluster0.csn4fag.mongodb.net/HealthCareDB?retryWrites=true&w=majority&appName=Cluster0
       - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
       - EUREKA_SERVER=${EUREKA_SERVER:-http://eureka:8761/eureka/}
+      - DOCTOR_SERVICE_URL=http://doctor-service:8082
+      - PATIENT_SERVICE_URL=http://patient-service:8092
+      - NOTIFICATION_SERVICE_URL=http://notification-service:8080
 
     depends_on:
       eureka:
