@@ -9,5 +9,5 @@ RUN mvn clean package -DskipTests
 FROM eclipse-temurin:17-jre-alpine
 WORKDIR /app
 COPY --from=builder /app/target/*.jar payment-service.jar
-EXPOSE 8085
+EXPOSE 8080
 ENTRYPOINT ["java", "-jar", "payment-service.jar"]

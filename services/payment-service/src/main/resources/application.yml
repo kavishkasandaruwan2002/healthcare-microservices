@@ -17,6 +17,8 @@ springdoc:
     path: /api/payments/swagger-ui.html
 
 stripe:
-  apiKey: ${STRIPE_API_KEY}
+  apiKey: ${STRIPE_SECRET_KEY}
+  webhook:
+    secret: ${STRIPE_WEBHOOK_SECRET}
 
 
