@@ -25,19 +25,23 @@ public class Payment {
     @GeneratedValue(strategy = GenerationType.AUTO)
     private UUID paymentId;
 
-    @Column(nullable = false)
+    @Column(nullable = true)
     private UUID appointmentId;
 
     @Column(nullable = false)
     private UUID patientId;
 
-    @Column(nullable = false)
+    @Column(nullable = true)
     private UUID doctorId;
 
     @Column(unique = true)
     private String stripePaymentIntentId;
 
     private String stripeClientSecret;
+
+    private String stripeSubscriptionId;
+
+    private String stripeCustomerId;
 
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal amount;
@@ -47,6 +51,9 @@ public class Payment {
 
     @Enumerated(EnumType.STRING)
     private PaymentStatus status;
+
+    @Enumerated(EnumType.STRING)
+    private com.medisync.payment.enums.PaymentType paymentType = com.medisync.payment.enums.PaymentType.APPOINTMENT;
 
     private String description;
 

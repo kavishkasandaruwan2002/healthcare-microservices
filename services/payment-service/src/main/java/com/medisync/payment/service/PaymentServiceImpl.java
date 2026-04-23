@@ -12,6 +12,9 @@ import com.medisync.payment.enums.RefundStatus;
 import com.medisync.payment.exception.InvalidPaymentStateException;
 import com.medisync.payment.exception.PaymentAlreadyCompletedException;
 import com.medisync.payment.exception.PaymentNotFoundException;
+import com.medisync.payment.enums.PaymentType;
+import com.stripe.model.Invoice;
+import com.stripe.model.Subscription;
 import com.medisync.payment.messaging.PaymentEventPublisher;
 import com.medisync.payment.repository.PaymentRepository;
 import com.medisync.payment.repository.RefundRepository;
@@ -149,7 +152,65 @@ public class PaymentServiceImpl implements PaymentService {
             String reason = intent.getLastPaymentError() != null ? intent.getLastPaymentError().getMessage() : "Unknown error";
             updatePaymentStatus(intent.getId(), PaymentStatus.FAILED, reason);
             paymentsFailedCounter.increment();
+
+        } else if ("invoice.paid".equals(event.getType())) {
+            Invoice invoice = (Invoice) event.getDataObjectDeserializer().getObject()
+                    .orElseThrow(() -> new RuntimeException("Failed to deserialize Invoice"));
+            
+            handleSubscriptionPayment(invoice);
+            paymentsSucceededCounter.increment();
+
+        } else if ("customer.subscription.deleted".equals(event.getType())) {
+            Subscription subscription = (Subscription) event.getDataObjectDeserializer().getObject()
+                    .orElseThrow(() -> new RuntimeException("Failed to deserialize Subscription"));
+            
+            log.info("Subscription cancelled: {}", subscription.getId());
         }
+    }
+
+    private void handleSubscriptionPayment(Invoice invoice) {
+        log.info("Handling subscription payment for invoice: {}", invoice.getId());
+        
+        String patientIdStr = invoice.getMetadata() != null ? invoice.getMetadata().get("patientId") : null;
+        
+        // 1. Try metadata
+        if (patientIdStr == null && invoice.getSubscription() != null) {
+            // Try customer lookup in our DB first (more efficient)
+            patientIdStr = paymentRepository.findFirstByStripeCustomerIdOrderByCreatedAtDesc(invoice.getCustomer())
+                    .map(p -> p.getPatientId().toString())
+                    .orElse(null);
+            
+            // 2. If still null, hit Stripe API (fallback)
+            if (patientIdStr == null) {
+                try {
+                    Subscription sub = Subscription.retrieve(invoice.getSubscription());
+                    patientIdStr = sub.getMetadata().get("patientId");
+                } catch (Exception e) {
+                    log.warn("Could not retrieve subscription metadata for {}", invoice.getSubscription());
+                }
+            }
+        }
+
+        if (patientIdStr == null) {
+            log.warn("No patientId found for invoice {}. Cannot save to DB.", invoice.getId());
+            return;
+        }
+
+        Payment payment = Payment.builder()
+                .patientId(UUID.fromString(patientIdStr))
+                .amount(BigDecimal.valueOf(invoice.getAmountPaid()).divide(BigDecimal.valueOf(100)))
+                .currency(invoice.getCurrency().toUpperCase())
+                .status(PaymentStatus.SUCCESS)
+                .paymentType(PaymentType.SUBSCRIPTION)
+                .stripeCustomerId(invoice.getCustomer())
+                .stripeSubscriptionId(invoice.getSubscription())
+                .description("Subscription Payment - " + invoice.getNumber())
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        paymentRepository.save(payment);
+        log.info("Saved subscription payment to DB for patient: {}", patientIdStr);
+        eventPublisher.publishPaymentCompleted(payment);
     }
 
     private void updatePaymentStatus(String intentId, PaymentStatus status, String failureReason) {
@@ -285,6 +346,9 @@ public class PaymentServiceImpl implements PaymentService {
                 .amount(payment.getAmount())
                 .currency(payment.getCurrency())
                 .status(payment.getStatus())
+                .paymentType(payment.getPaymentType() != null ? payment.getPaymentType().name() : null)
+                .stripeSubscriptionId(payment.getStripeSubscriptionId())
+                .stripeCustomerId(payment.getStripeCustomerId())
                 .description(payment.getDescription())
                 .stripePaymentIntentId(payment.getStripePaymentIntentId())
                 .failureReason(payment.getFailureReason())

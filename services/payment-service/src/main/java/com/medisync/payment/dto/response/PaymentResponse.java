@@ -22,6 +22,9 @@ public class PaymentResponse {
     private BigDecimal amount;
     private String currency;
     private PaymentStatus status;
+    private String paymentType;
+    private String stripeSubscriptionId;
+    private String stripeCustomerId;
     private String description;
     private String stripePaymentIntentId;
     private String failureReason;
