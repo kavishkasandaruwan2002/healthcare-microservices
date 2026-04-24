@@ -24,6 +24,11 @@ public class ServiceAuthFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
 
+        if (request.getRequestURI().contains("/stripe-callback")) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
         String headerSecret = request.getHeader("X-Service-Secret");
 
         if (headerSecret != null && headerSecret.equals(serviceSecret)) {

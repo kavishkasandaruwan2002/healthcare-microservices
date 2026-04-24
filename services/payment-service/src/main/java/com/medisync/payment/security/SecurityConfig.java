@@ -36,7 +36,7 @@ public class SecurityConfig {
             .cors(Customizer.withDefaults()) // Tell Spring to use the CORS filter
             .authorizeHttpRequests(auth -> auth
             .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll() // Allow preflight
-            .requestMatchers("/api/v1/payments/webhook").permitAll() // Allow Stripe webhooks
+            .requestMatchers("/api/v1/payments/stripe-callback").permitAll() // Allow Stripe webhooks
             .requestMatchers("/api/v1/payments/**").authenticated()
             .anyRequest().permitAll()
         );

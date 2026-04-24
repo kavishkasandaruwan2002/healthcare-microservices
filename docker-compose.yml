@@ -191,6 +191,8 @@ services:
   payment-service:
     build: services/payment-service
     container_name: payment-service
+    ports:
+      - "8089:8089"
     environment:
       - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY:-sk_test_1234}
       - STRIPE_PUBLISHABLE_KEY=${STRIPE_PUBLISHABLE_KEY:-pk_test_1234}
@@ -200,6 +202,7 @@ services:
       - DB_NAME=telemedicine_db
       - DB_USERNAME=postgres
       - DB_PASSWORD=postgres
+      - SERVER_PORT=8089
       - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE:-docker}
       - EUREKA_SERVER=${EUREKA_SERVER:-http://eureka:8761/eureka/}
       - JWT_SECRET=${JWT_SECRET:-357638792F423F4528482B4D6251655468576D5A7134743777217A25432A462D}

@@ -13,8 +13,11 @@ import com.medisync.payment.exception.InvalidPaymentStateException;
 import com.medisync.payment.exception.PaymentAlreadyCompletedException;
 import com.medisync.payment.exception.PaymentNotFoundException;
 import com.medisync.payment.enums.PaymentType;
+import com.stripe.model.Charge;
 import com.stripe.model.Invoice;
 import com.stripe.model.Subscription;
+import com.stripe.model.checkout.Session;
+import java.math.BigDecimal;
 import com.medisync.payment.messaging.PaymentEventPublisher;
 import com.medisync.payment.repository.PaymentRepository;
 import com.medisync.payment.repository.RefundRepository;
@@ -22,7 +25,9 @@ import com.medisync.payment.stripe.StripeGateway;
 import com.stripe.exception.SignatureVerificationException;
 import com.stripe.exception.StripeException;
 import com.stripe.model.Event;
+import com.stripe.model.EventDataObjectDeserializer;
 import com.stripe.model.PaymentIntent;
+import com.stripe.model.StripeObject;
 import com.stripe.net.Webhook;
 import com.stripe.param.PaymentIntentCreateParams;
 import com.stripe.param.RefundCreateParams;
@@ -134,37 +139,57 @@ public class PaymentServiceImpl implements PaymentService {
     @Override
     @Transactional
     public void handleWebhook(String payload, String sigHeader) throws SignatureVerificationException {
-        Event event = stripeGateway.constructWebhookEvent(payload, sigHeader, stripeWebhookSecret);
+        try {
+            Event event = stripeGateway.constructWebhookEvent(payload, sigHeader, stripeWebhookSecret);
+            log.info("WEBHOOK_TYPE: {}", event.getType());
+            
+            EventDataObjectDeserializer deserializer = event.getDataObjectDeserializer();
+            StripeObject stripeObject = deserializer.getObject().orElse(null);
+            
+            // Fail-safe: if the primary deserializer fails, try to get the raw object (useful for version mismatches)
+            if (stripeObject == null) {
+                log.warn("WEBHOOK_WARN: Primary deserializer returned empty for {}. Attempting fail-safe.", event.getType());
+            }
 
-        log.info("Handling Stripe Webhook event: {}", event.getType());
-
-        if ("payment_intent.succeeded".equals(event.getType())) {
-            PaymentIntent intent = (PaymentIntent) event.getDataObjectDeserializer().getObject()
-                    .orElseThrow(() -> new RuntimeException("Failed to deserialize PaymentIntent"));
-            
-            updatePaymentStatus(intent.getId(), PaymentStatus.SUCCESS, null);
-            paymentsSucceededCounter.increment();
-            
-        } else if ("payment_intent.payment_failed".equals(event.getType())) {
-            PaymentIntent intent = (PaymentIntent) event.getDataObjectDeserializer().getObject()
-                    .orElseThrow(() -> new RuntimeException("Failed to deserialize PaymentIntent"));
-            
-            String reason = intent.getLastPaymentError() != null ? intent.getLastPaymentError().getMessage() : "Unknown error";
-            updatePaymentStatus(intent.getId(), PaymentStatus.FAILED, reason);
-            paymentsFailedCounter.increment();
-
-        } else if ("invoice.paid".equals(event.getType())) {
-            Invoice invoice = (Invoice) event.getDataObjectDeserializer().getObject()
-                    .orElseThrow(() -> new RuntimeException("Failed to deserialize Invoice"));
-            
-            handleSubscriptionPayment(invoice);
-            paymentsSucceededCounter.increment();
-
-        } else if ("customer.subscription.deleted".equals(event.getType())) {
-            Subscription subscription = (Subscription) event.getDataObjectDeserializer().getObject()
-                    .orElseThrow(() -> new RuntimeException("Failed to deserialize Subscription"));
-            
-            log.info("Subscription cancelled: {}", subscription.getId());
+            if ("payment_intent.succeeded".equals(event.getType())) {
+                PaymentIntent intent = (PaymentIntent) stripeObject;
+                if (intent == null) {
+                    // Manual extraction if deserializer failed
+                    String rawJson = deserializer.getRawJson();
+                    intent = com.stripe.net.ApiResource.GSON.fromJson(rawJson, PaymentIntent.class);
+                }
+                if (intent != null) {
+                    updatePaymentStatus(intent.getId(), PaymentStatus.SUCCESS, null, intent);
+                }
+            } else if ("charge.succeeded".equals(event.getType())) {
+                Charge charge = (Charge) stripeObject;
+                if (charge == null) {
+                    charge = com.stripe.net.ApiResource.GSON.fromJson(deserializer.getRawJson(), Charge.class);
+                }
+                if (charge != null && charge.getPaymentIntent() != null) {
+                    updatePaymentStatus(charge.getPaymentIntent(), PaymentStatus.SUCCESS, null, null);
+                }
+            } else if ("invoice.payment_succeeded".equals(event.getType()) || "invoice.paid".equals(event.getType())) {
+                Invoice invoice = (Invoice) stripeObject;
+                if (invoice == null) {
+                    invoice = com.stripe.net.ApiResource.GSON.fromJson(deserializer.getRawJson(), Invoice.class);
+                }
+                if (invoice != null && invoice.getPaymentIntent() != null) {
+                    updatePaymentStatus(invoice.getPaymentIntent(), PaymentStatus.SUCCESS, null, null);
+                }
+            } else if ("checkout.session.completed".equals(event.getType())) {
+                Session session = (Session) stripeObject;
+                if (session == null) {
+                    session = com.stripe.net.ApiResource.GSON.fromJson(deserializer.getRawJson(), Session.class);
+                }
+                if (session != null && session.getPaymentIntent() != null) {
+                    updatePaymentStatus(session.getPaymentIntent(), PaymentStatus.SUCCESS, null, null);
+                }
+            } else {
+                log.info("WEBHOOK_IGNORED: {}", event.getType());
+            }
+        } catch (Throwable t) {
+            log.error("WEBHOOK_EXCEPTION: ", t);
         }
     }
 
@@ -213,12 +238,48 @@ public class PaymentServiceImpl implements PaymentService {
         eventPublisher.publishPaymentCompleted(payment);
     }
 
-    private void updatePaymentStatus(String intentId, PaymentStatus status, String failureReason) {
-        Payment payment = paymentRepository.findByStripePaymentIntentId(intentId)
-                .orElseThrow(() -> new PaymentNotFoundException("Payment not found for Intent ID: " + intentId));
+    private void updatePaymentStatus(String intentId, PaymentStatus status, String failureReason, PaymentIntent intent) {
+        log.info("WEBHOOK_DB: Searching for payment with intent ID: {}", intentId);
+        
+        Payment payment = paymentRepository.findByStripePaymentIntentId(intentId).orElse(null);
 
-        payment.setStatus(status);
-        payment.setFailureReason(failureReason);
+        if (payment == null) {
+            log.info("WEBHOOK_DB: Payment not found for intent {}. Creating a new one for logging purposes.", intentId);
+            
+            String patientIdStr = (intent != null && intent.getMetadata() != null) ? intent.getMetadata().get("patientId") : null;
+            UUID patientId = null;
+            
+            try {
+                if (patientIdStr != null) {
+                    patientId = UUID.fromString(patientIdStr);
+                }
+            } catch (Exception e) {
+                log.warn("WEBHOOK_DB: Invalid patientId in metadata: {}", patientIdStr);
+            }
+            
+            if (patientId == null) {
+                patientId = UUID.fromString("00000000-0000-0000-0000-000000000000");
+            }
+
+            payment = Payment.builder()
+                    .stripePaymentIntentId(intentId)
+                    .patientId(patientId)
+                    .amount(intent != null ? BigDecimal.valueOf(intent.getAmount()).divide(BigDecimal.valueOf(100)) : BigDecimal.ZERO)
+                    .currency(intent != null ? intent.getCurrency().toUpperCase() : "USD")
+                    .status(status)
+                    .description("Auto-created from webhook: " + intentId)
+                    .paymentType(PaymentType.APPOINTMENT)
+                    .createdAt(LocalDateTime.now())
+                    .build();
+        } else {
+            log.info("WEBHOOK_DB: Found existing payment record. Updating status.");
+            payment.setStatus(status);
+        }
+
+        if (failureReason != null) {
+            payment.setFailureReason(failureReason);
+        }
+        
         paymentRepository.save(payment);
 
         if (status == PaymentStatus.SUCCESS) {

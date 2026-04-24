@@ -30,8 +30,6 @@ spring:
           uri: lb://patient-service
           predicates:
             - Path=/api/patients/**
-          filters:
-            - RewritePath=/api/patients/(?<segment>.*), /$\{segment}
         - id: doctor-service
           uri: lb://doctor-service
           predicates:
@@ -44,8 +42,6 @@ spring:
           uri: lb://payment-service
           predicates:
             - Path=/api/v1/payments/**
-          filters:
-            - RewritePath=/api/v1/payments/(?<segment>.*), /api/v1/payments/$\{segment}
         - id: notification-service
           uri: lb://notification-service
           predicates:

@@ -88,11 +88,16 @@
             <scope>test</scope>
         </dependency>
 
-        <!-- Stripe -->
         <dependency>
             <groupId>com.stripe</groupId>
             <artifactId>stripe-java</artifactId>
             <version>${stripe-java.version}</version>
+        </dependency>
+
+        <!-- GSON for manual JSON parsing -->
+        <dependency>
+            <groupId>com.google.code.gson</groupId>
+            <artifactId>gson</artifactId>
         </dependency>
 
         <!-- JWT -->

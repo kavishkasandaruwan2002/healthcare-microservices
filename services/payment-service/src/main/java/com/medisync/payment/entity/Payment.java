@@ -46,12 +46,14 @@ public class Payment {
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal amount;
 
+    @Builder.Default
     @Column(nullable = false, length = 3)
     private String currency = "USD";
 
     @Enumerated(EnumType.STRING)
     private PaymentStatus status;
 
+    @Builder.Default
     @Enumerated(EnumType.STRING)
     private com.medisync.payment.enums.PaymentType paymentType = com.medisync.payment.enums.PaymentType.APPOINTMENT;
 

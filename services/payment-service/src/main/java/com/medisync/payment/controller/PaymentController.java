@@ -21,6 +21,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -39,13 +40,27 @@ public class PaymentController {
 
     private final PaymentService paymentService;
 
+    @PostMapping("/stripe-callback")
+    public ResponseEntity<String> handleStripeWebhook(
+            @RequestBody String payload,
+            @RequestHeader(value = "Stripe-Signature", required = false) String sig) {
+        
+        log.info("WEBHOOK_RECEIVED: Payload length: {}", payload.length());
+        try {
+            paymentService.handleWebhook(payload, sig);
+            return ResponseEntity.ok("OK");
+        } catch (Exception e) {
+            log.error("WEBHOOK_FAILED: ", e);
+            return ResponseEntity.status(500).body("Error: " + e.getMessage());
+        }
+    }
+
     @PostMapping("/initiate")
     @Operation(summary = "Initiate a payment", description = "Creates a Stripe PaymentIntent and returns clientSecret to frontend")
     @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Payment initiated successfully",
-            content = @Content(schema = @Schema(implementation = PaymentInitiateResponse.class))),
-        @ApiResponse(responseCode = "404", description = "Appointment not found"),
-        @ApiResponse(responseCode = "409", description = "Payment already completed")
+            @ApiResponse(responseCode = "200", description = "Payment initiated successfully", content = @Content(schema = @Schema(implementation = PaymentInitiateResponse.class))),
+            @ApiResponse(responseCode = "404", description = "Appointment not found"),
+            @ApiResponse(responseCode = "409", description = "Payment already completed")
     })
     public ResponseEntity<PaymentInitiateResponse> initiatePayment(
             @Valid @RequestBody InitiatePaymentRequest request,
@@ -61,27 +76,7 @@ public class PaymentController {
         return ResponseEntity.ok(response);
     }
 
-    @PostMapping(value = "/webhook", consumes = MediaType.APPLICATION_JSON_VALUE)
-    @Operation(summary = "Stripe webhook endpoint", description = "Handles Stripe webhook events")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Webhook received"),
-        @ApiResponse(responseCode = "400", description = "Invalid signature")
-    })
-    public ResponseEntity<Map<String, Boolean>> handleStripeWebhook(
-            @RequestBody String payload,
-            @RequestHeader("Stripe-Signature") String stripeSignature) {
-
-        log.info("Received Stripe webhook");
-        try {
-            paymentService.handleWebhook(payload, stripeSignature);
-            return ResponseEntity.ok(Map.of("received", true));
-        } catch (SignatureVerificationException e) {
-            log.error("Invalid webhook signature", e);
-            return ResponseEntity.badRequest().build();
-        }
-    }
-
-    @GetMapping("/{paymentId}")
+    @GetMapping("/{paymentId:[0-9a-fA-F-]{36}}")
     @Operation(summary = "Get payment by ID", description = "Retrieve payment details by payment ID")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Payment found",
@@ -106,10 +101,9 @@ public class PaymentController {
     @GetMapping("/appointment/{appointmentId}")
     @Operation(summary = "Get payment by appointment ID", description = "Retrieve payment details by appointment ID")
     @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Payment found",
-            content = @Content(schema = @Schema(implementation = PaymentResponse.class))),
-        @ApiResponse(responseCode = "404", description = "Payment not found"),
-        @ApiResponse(responseCode = "403", description = "Access denied")
+            @ApiResponse(responseCode = "200", description = "Payment found", content = @Content(schema = @Schema(implementation = PaymentResponse.class))),
+            @ApiResponse(responseCode = "404", description = "Payment not found"),
+            @ApiResponse(responseCode = "403", description = "Access denied")
     })
     public ResponseEntity<PaymentResponse> getPaymentByAppointmentId(
             @PathVariable UUID appointmentId,
@@ -130,8 +124,7 @@ public class PaymentController {
     @PreAuthorize("hasRole('PATIENT')")
     @Operation(summary = "Get my payments", description = "Retrieve all payments for the authenticated patient")
     @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Payments retrieved successfully",
-            content = @Content(schema = @Schema(implementation = PaymentResponse.class)))
+            @ApiResponse(responseCode = "200", description = "Payments retrieved successfully", content = @Content(schema = @Schema(implementation = PaymentResponse.class)))
     })
     public ResponseEntity<Page<PaymentResponse>> getMyPayments(
             @RequestParam(required = false) String status,
@@ -152,10 +145,9 @@ public class PaymentController {
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Issue a refund", description = "Issue a full or partial refund for a payment")
     @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Refund issued successfully",
-            content = @Content(schema = @Schema(implementation = RefundResponse.class))),
-        @ApiResponse(responseCode = "404", description = "Payment not found"),
-        @ApiResponse(responseCode = "409", description = "Payment cannot be refunded")
+            @ApiResponse(responseCode = "200", description = "Refund issued successfully", content = @Content(schema = @Schema(implementation = RefundResponse.class))),
+            @ApiResponse(responseCode = "404", description = "Payment not found"),
+            @ApiResponse(responseCode = "409", description = "Payment cannot be refunded")
     })
     public ResponseEntity<RefundResponse> issueRefund(
             @PathVariable UUID paymentId,
@@ -176,8 +168,7 @@ public class PaymentController {
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "List all payments", description = "Retrieve all payments with optional filters")
     @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Payments retrieved successfully",
-            content = @Content(schema = @Schema(implementation = PaymentResponse.class)))
+            @ApiResponse(responseCode = "200", description = "Payments retrieved successfully", content = @Content(schema = @Schema(implementation = PaymentResponse.class)))
     })
     public ResponseEntity<Page<PaymentResponse>> getAllPayments(
             @RequestParam(required = false) String status,
@@ -194,8 +185,7 @@ public class PaymentController {
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Get payment statistics", description = "Retrieve payment statistics and total revenue")
     @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Statistics retrieved successfully",
-            content = @Content(schema = @Schema(implementation = PaymentStatsResponse.class)))
+            @ApiResponse(responseCode = "200", description = "Statistics retrieved successfully", content = @Content(schema = @Schema(implementation = PaymentStatsResponse.class)))
     })
     public ResponseEntity<PaymentStatsResponse> getPaymentStats() {
         log.info("Getting payment statistics");
