@@ -44,6 +44,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.Optional;
 import java.util.UUID;
 
 @Slf4j
@@ -241,46 +242,58 @@ public class PaymentServiceImpl implements PaymentService {
     private void updatePaymentStatus(String intentId, PaymentStatus status, String failureReason, PaymentIntent intent) {
         log.info("WEBHOOK_DB: Searching for payment with intent ID: {}", intentId);
         
-        Payment payment = paymentRepository.findByStripePaymentIntentId(intentId).orElse(null);
+        Optional<Payment> existingPayment = paymentRepository.findByStripePaymentIntentId(intentId);
 
-        if (payment == null) {
-            log.info("WEBHOOK_DB: Payment not found for intent {}. Creating a new one for logging purposes.", intentId);
-            
-            String patientIdStr = (intent != null && intent.getMetadata() != null) ? intent.getMetadata().get("patientId") : null;
-            UUID patientId = null;
-            
-            try {
-                if (patientIdStr != null) {
-                    patientId = UUID.fromString(patientIdStr);
-                }
-            } catch (Exception e) {
-                log.warn("WEBHOOK_DB: Invalid patientId in metadata: {}", patientIdStr);
+        if (existingPayment.isPresent()) {
+            Payment p = existingPayment.get();
+            if (p.getStatus() == PaymentStatus.SUCCESS) {
+                log.info("WEBHOOK_DB: Payment {} already marked as SUCCESS. Ignoring duplicate event.", intentId);
+                return;
             }
+            p.setStatus(status);
+            p.setFailureReason(failureReason);
+            p.setUpdatedAt(LocalDateTime.now());
+            paymentRepository.save(p);
+            log.info("WEBHOOK_DB: UPDATED existing payment to {}", status);
             
-            if (patientId == null) {
-                patientId = UUID.fromString("00000000-0000-0000-0000-000000000000");
+            if (status == PaymentStatus.SUCCESS) {
+                eventPublisher.publishPaymentCompleted(p);
             }
-
-            payment = Payment.builder()
-                    .stripePaymentIntentId(intentId)
-                    .patientId(patientId)
-                    .amount(intent != null ? BigDecimal.valueOf(intent.getAmount()).divide(BigDecimal.valueOf(100)) : BigDecimal.ZERO)
-                    .currency(intent != null ? intent.getCurrency().toUpperCase() : "USD")
-                    .status(status)
-                    .description("Auto-created from webhook: " + intentId)
-                    .paymentType(PaymentType.APPOINTMENT)
-                    .createdAt(LocalDateTime.now())
-                    .build();
-        } else {
-            log.info("WEBHOOK_DB: Found existing payment record. Updating status.");
-            payment.setStatus(status);
+            return;
         }
 
-        if (failureReason != null) {
-            payment.setFailureReason(failureReason);
+        log.info("WEBHOOK_DB: Payment not found for intent {}. Creating a new one in state {}.", intentId, status);
+        
+        String patientIdStr = (intent != null && intent.getMetadata() != null) ? intent.getMetadata().get("patientId") : null;
+        UUID patientId = null;
+        
+        try {
+            if (patientIdStr != null) {
+                patientId = UUID.fromString(patientIdStr);
+            }
+        } catch (Exception e) {
+            log.warn("WEBHOOK_DB: Invalid patientId in metadata: {}", patientIdStr);
         }
         
+        if (patientId == null) {
+            patientId = UUID.fromString("00000000-0000-0000-0000-000000000000");
+        }
+
+        Payment payment = Payment.builder()
+                .stripePaymentIntentId(intentId)
+                .patientId(patientId)
+                .amount(intent != null ? BigDecimal.valueOf(intent.getAmount()).divide(BigDecimal.valueOf(100)) : BigDecimal.ZERO)
+                .currency(intent != null ? intent.getCurrency().toUpperCase() : "USD")
+                .status(status)
+                .description("Auto-created from webhook: " + intentId)
+                .paymentType(PaymentType.APPOINTMENT)
+                .createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
+                .failureReason(failureReason)
+                .build();
+
         paymentRepository.save(payment);
+        log.info("WEBHOOK_DB: SUCCESSFULLY saved new payment record.");
 
         if (status == PaymentStatus.SUCCESS) {
             eventPublisher.publishPaymentCompleted(payment);
