@@ -62,12 +62,12 @@ services:
       retries: 10
 
   postgres:
-    image: postgres:15
+    image: postgres:14
     container_name: postgres-db
     environment:
-      - POSTGRES_DB=telemedicine_db
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: telemedicine_db
     ports:
       - "5432:5432"
     volumes:
@@ -76,10 +76,10 @@ services:
       - healthcare-network
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
       interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 10
 
   rabbitmq:
     image: rabbitmq:3-management
@@ -105,8 +105,7 @@ services:
       - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE:-docker}
       - EUREKA_SERVER=${EUREKA_SERVER:-http://eureka:8761/eureka/}
     depends_on:
-      eureka:
-        condition: service_healthy
+      - eureka
     networks:
       - healthcare-network
     restart: unless-stopped
@@ -121,7 +120,7 @@ services:
     container_name: auth-service
     environment:
       - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE:-docker}
-      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/auth_db
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/${MYSQL_DATABASE:-healthcare_db}
       - SPRING_DATASOURCE_USERNAME=root
       - SPRING_DATASOURCE_PASSWORD=${MYSQL_ROOT_PASSWORD:-root}
       - EUREKA_SERVER=${EUREKA_SERVER:-http://eureka:8761/eureka/}
@@ -176,6 +175,9 @@ services:
       - SPRING_DATA_MONGODB_URI=mongodb+srv://Ayodya:Ayodya@cluster0.csn4fag.mongodb.net/HealthCareDB?retryWrites=true&w=majority&appName=Cluster0
       - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
       - EUREKA_SERVER=${EUREKA_SERVER:-http://eureka:8761/eureka/}
+      - DOCTOR_SERVICE_URL=http://doctor-service:8082
+      - PATIENT_SERVICE_URL=http://patient-service:8092
+      - NOTIFICATION_SERVICE_URL=http://notification-service:8080
 
     depends_on:
       eureka:
@@ -189,10 +191,22 @@ services:
   payment-service:
     build: services/payment-service
     container_name: payment-service
+    ports:
+      - "8089:8089"
     environment:
-      - STRIPE_API_KEY=${STRIPE_API_KEY}
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY:-sk_test_1234}
+      - STRIPE_PUBLISHABLE_KEY=${STRIPE_PUBLISHABLE_KEY:-pk_test_1234}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET:-whsec_1234}
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=telemedicine_db
+      - DB_USERNAME=postgres
+      - DB_PASSWORD=postgres
+      - SERVER_PORT=8089
       - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE:-docker}
       - EUREKA_SERVER=${EUREKA_SERVER:-http://eureka:8761/eureka/}
+      - JWT_SECRET=${JWT_SECRET:-357638792F423F4528482B4D6251655468576D5A7134743777217A25432A462D}
+      - SERVICE_SECRET=${SERVICE_SECRET:-internal_service_secret_key}
     depends_on:
       eureka:
         condition: service_healthy
@@ -229,12 +243,30 @@ services:
   telemedicine-service:
     build: services/telemedicine-service
     container_name: telemedicine-service
+    ports:
+      - "8084:8080"
     environment:
-      - AGORA_APP_ID=${AGORA_APP_ID}
       - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE:-docker}
       - EUREKA_SERVER=${EUREKA_SERVER:-http://eureka:8761/eureka/}
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=telemedicine_db
+      - DB_USERNAME=postgres
+      - DB_PASSWORD=postgres
+      - AGORA_APP_ID=${AGORA_APP_ID}
+      - AGORA_APP_CERTIFICATE=${AGORA_APP_CERTIFICATE}
+      - JWT_SECRET=${JWT_SECRET}
+      - SERVICE_SECRET=${SERVICE_SECRET:-internal_service_secret_key}
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USERNAME=guest
+      - RABBITMQ_PASSWORD=guest
     depends_on:
       eureka:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      rabbitmq:
         condition: service_healthy
     networks:
       - healthcare-network
@@ -265,10 +297,10 @@ services:
     ports:
       - "${FRONTEND_PORT:-3000}:3000"
     environment:
-      - NEXT_PUBLIC_API_URL=http://api-gateway:8085
+      - NEXT_PUBLIC_API_BASE_URL=http://localhost:8085
+      - NEXT_PUBLIC_TELE_API_URL=http://localhost:8085/api/telemedicine
     depends_on:
-      gateway:
-        condition: service_healthy
+      - gateway
     networks:
       - healthcare-network
     restart: unless-stopped
