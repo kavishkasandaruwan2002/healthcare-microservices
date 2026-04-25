@@ -1,0 +1,75 @@
+server:
+  port: 8083
+
+spring:
+  application:
+    name: appointment-service
+  data:
+    mongodb:
+      uri: ${SPRING_DATA_MONGODB_URI:mongodb+srv://Ayodya:Ayodya@cluster0.csn4fag.mongodb.net/HealthCareDB?retryWrites=true&w=majority&appName=Cluster0}
+      auto-index-creation: true
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+  data.redis.enabled: false
+
+  rabbitmq:
+    host: ${RABBITMQ_HOST:rabbitmq}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:guest}
+    password: ${RABBITMQ_PASSWORD:guest}
+
+eureka:
+  client:
+    serviceUrl:
+      defaultZone: ${EUREKA_SERVER:http://localhost:8761/eureka/}
+  instance:
+    prefer-ip-address: false
+
+# External Service URLs
+doctor:
+  service:
+    url: ${DOCTOR_SERVICE_URL:http://localhost:8082}
+
+patient:
+  service:
+    url: ${PATIENT_SERVICE_URL:http://localhost:8083}
+
+notification:
+  service:
+    url: ${NOTIFICATION_SERVICE_URL:http://localhost:8080}
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      doctorService:
+        registerHealthIndicator: true
+        slidingWindowSize: 10
+        permittedNumberOfCallsInHalfOpenState: 3
+        slidingWindowType: COUNT_BASED
+        minimumNumberOfCalls: 5
+        waitDurationInOpenState: 5s
+        failureRateThreshold: 50
+        eventConsumerBufferSize: 10
+      paymentService:
+        registerHealthIndicator: true
+        slidingWindowSize: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 5s
+
+springdoc:
+  api-docs:
+    path: /api/appointments/v3/api-docs
+  swagger-ui:
+    path: /api/appointments/swagger-ui.html
+
+logging:
+  level:
+    org.springframework.data.mongodb.core.MongoTemplate: DEBUG
+    com.healthcare.appointment: DEBUG
+    org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping: TRACE
+
+
+
+

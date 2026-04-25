@@ -1,0 +1,153 @@
+{
+  "info": {
+    "name": "Telemedicine Service API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "version": "1.0.0"
+  },
+  "item": [
+    {
+      "name": "Create Session",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "X-Service-Secret", "value": "{{SERVICE_SECRET}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"appointmentId\": \"00000000-0000-0000-0000-000000000000\",\n  \"patientId\": \"00000000-0000-0000-0000-000000000000\",\n  \"doctorId\": \"00000000-0000-0000-0000-000000000000\",\n  \"scheduledAt\": \"2026-04-17T10:00:00\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:8084/api/v1/sessions/create",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8084",
+          "path": ["api","v1","sessions","create"]
+        }
+      }
+    },
+    {
+      "name": "Get Session",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{JWT_TOKEN}}" }],
+        "url": {
+          "raw": "http://localhost:8084/api/v1/sessions/{{sessionId}}",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8084",
+          "path": ["api","v1","sessions","{{sessionId}}"]
+        }
+      }
+    },
+    {
+      "name": "Get Session Token",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{JWT_TOKEN}}" }],
+        "url": {
+          "raw": "http://localhost:8084/api/v1/sessions/{{sessionId}}/token",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8084",
+          "path": ["api","v1","sessions","{{sessionId}}","token"]
+        }
+      }
+    },
+    {
+      "name": "Refresh Session Token",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{JWT_TOKEN}}" }],
+        "url": {
+          "raw": "http://localhost:8084/api/v1/sessions/{{sessionId}}/token/refresh",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8084",
+          "path": ["api","v1","sessions","{{sessionId}}","token","refresh"]
+        }
+      }
+    },
+    {
+      "name": "End Session",
+      "request": {
+        "method": "PUT",
+        "header": [{ "key": "Authorization", "value": "Bearer {{JWT_TOKEN}}" }],
+        "url": {
+          "raw": "http://localhost:8084/api/v1/sessions/{{sessionId}}/end",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8084",
+          "path": ["api","v1","sessions","{{sessionId}}","end"]
+        }
+      }
+    },
+    {
+      "name": "Cancel Session",
+      "request": {
+        "method": "PUT",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{JWT_TOKEN}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"reason\": \"Provider unavailable\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:8084/api/v1/sessions/{{sessionId}}/cancel",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8084",
+          "path": ["api","v1","sessions","{{sessionId}}","cancel"]
+        }
+      }
+    },
+    {
+      "name": "List My Sessions",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{JWT_TOKEN}}" }],
+        "url": {
+          "raw": "http://localhost:8084/api/v1/sessions/my-sessions?page=0&size=10",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8084",
+          "path": ["api","v1","sessions","my-sessions"],
+          "query": [
+            { "key": "page", "value": "0" },
+            { "key": "size", "value": "10" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Get Session Participants",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{JWT_TOKEN}}" }],
+        "url": {
+          "raw": "http://localhost:8084/api/v1/sessions/{{sessionId}}/participants",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8084",
+          "path": ["api","v1","sessions","{{sessionId}}","participants"]
+        }
+      }
+    },
+    {
+      "name": "Get Session Stats",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{JWT_TOKEN}}" }],
+        "url": {
+          "raw": "http://localhost:8084/api/v1/sessions/stats",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8084",
+          "path": ["api","v1","sessions","stats"]
+        }
+      }
+    }
+  ]
+}

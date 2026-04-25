@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: appointment-service
+  namespace: healthcare
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: appointment-service
+  template:
+    metadata:
+      labels:
+        app: appointment-service
+    spec:
+      containers:
+      - name: appointment-service
+        image: healthcare/appointment-service:latest
+        ports:
+        - containerPort: 8083
+        env:
+        - name: SPRING_DATA_MONGODB_URI
+          value: mongodb://mongo-service:27017/appointment_db
+        - name: KAFKA_BOOTSTRAP_SERVERS
+          value: kafka-service:9092
+        - name: EUREKA_SERVER
+          value: http://eureka-server:8761/eureka/
+
+

@@ -1,0 +1,51 @@
+server:
+  port: 8088
+
+spring:
+  application:
+    name: notification-service
+
+  # MongoDB – overridden in Docker by SPRING_DATA_MONGODB_URI env var
+  data:
+    mongodb:
+      uri: mongodb+srv://Ayodya:Ayodya@cluster0.csn4fag.mongodb.net/HealthCareDB?retryWrites=true&w=majority&appName=Cluster0
+
+  # Mail – overridden in Docker by SPRING_MAIL_* env vars
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: peirisayodya369@gmail.com
+    password: "tpmlonjrdqksnhkm"
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+          connectiontimeout: 15000
+          timeout: 15000
+          writetimeout: 15000
+
+  thymeleaf:
+    prefix: classpath:/templates/
+    suffix: .html
+    mode: HTML
+    encoding: UTF-8
+    cache: false
+
+eureka:
+  client:
+    serviceUrl:
+      defaultZone: ${EUREKA_SERVER:http://localhost:8761/eureka/}
+
+notification:
+  mail:
+    from: ${NOTIFICATION_MAIL_FROM:peirisayodya369@gmail.com}
+    from-name: ${NOTIFICATION_MAIL_FROM_NAME:HealthCare Platform}
+
+springdoc:
+  api-docs:
+    path: /api/notifications/v3/api-docs
+  swagger-ui:
+    path: /api/notifications/swagger-ui.html

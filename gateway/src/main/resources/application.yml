@@ -1,0 +1,69 @@
+server:
+  port: 8085
+
+spring:
+  application:
+    name: gateway
+  cloud:
+    gateway:
+      routes:
+        - id: auth-service
+          uri: lb://auth-service
+          predicates:
+            - Path=/api/auth/**
+        - id: patient-service
+          uri: lb://patient-service
+          predicates:
+            - Path=/api/patients/**
+        - id: doctor-service
+          uri: lb://doctor-service
+          predicates:
+            - Path=/api/doctors/**
+        - id: appointment-service
+          uri: lb://appointment-service
+          predicates:
+            - Path=/api/appointments/**
+        - id: payment-service
+          uri: lb://payment-service
+          predicates:
+            - Path=/api/payments/**
+        - id: notification-service
+          uri: lb://notification-service
+          predicates:
+            - Path=/api/notifications/**
+        - id: telemedicine-service
+          uri: lb://telemedicine-service
+          predicates:
+            - Path=/api/telemedicine/**
+          filters:
+            - RewritePath=/api/telemedicine/(?!v3/api-docs)(?<segment>.*), /api/v1/${segment}
+        - id: ai-service
+          uri: lb://ai-service
+          predicates:
+            - Path=/api/ai/**
+
+eureka:
+  client:
+    serviceUrl:
+      defaultZone: ${EUREKA_SERVER:http://localhost:8761/eureka/}
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    urls:
+      - name: Auth Service
+        url: /api/auth/v3/api-docs
+      - name: Patient Service
+        url: /api/patients/v3/api-docs
+      - name: Doctor Service
+        url: /api/doctors/v3/api-docs
+      - name: Appointment Service
+        url: /api/appointments/v3/api-docs
+      - name: Payment Service
+        url: /api/payments/v3/api-docs
+      - name: Notification Service
+        url: /api/notifications/v3/api-docs
+      - name: Telemedicine Service
+        url: /api/telemedicine/v3/api-docs
+      - name: AI Service
+        url: /api/ai/v3/api-docs
