@@ -1,16 +1,22 @@
-# Compiled class file
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# JAVA / MAVEN / SPRING BOOT
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+# Compiled class files
 *.class
 
-# Log file
-*.log
+# Maven build directories
+target/
+**/target/
 
-# BlueJ files
-*.ctxt
+# Maven wrapper
+.mvn/
+mvnw
+mvnw.cmd
+.mvn/wrapper/maven-wrapper.jar
+.mvn/wrapper/maven-wrapper.properties
 
-# Mobile Tools for Java (J2ME)
-.mtj.tmp/
-
-# Package Files #
+# Compiled packages
 *.jar
 *.war
 *.nar
@@ -19,6 +25,280 @@
 *.tar.gz
 *.rar
 
-# virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
+# Maven files
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+pom.xml.bak
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+.mvn.buildNumber.properties
+.mvn.properties
+
+# IntelliJ IDEA
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+*.orig
+
+# Eclipse IDE
+.classpath
+.project
+.settings/
+.factorypath
+.sts4-cache/
+bin/
+
+# VS Code
+.vscode/
+*.code-workspace
+.history/
+.project
+.c9/
+*.swp
+*~
+.DS_Store
+
+# NetBeans
+nbproject/private/
+build/
+nbbuild/
+dist/
+nbdist/
+.nb-gradle/
+
+# JetBrains IDEs
+.idea/
+*.iml
+out/
+.gradle
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+.sublimetext-cache/
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# NODEJS / NPM / CLIENT (React/Next.js)
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+# Node modules
+node_modules/
+npm-debug.log
+npm-debug.log.*
+yarn-error.log
+yarn-debug.log
+.pnpm-debug.log
+
+# Next.js
+.next/
+out/
+build/
+.vercel
+.turbo
+
+# Package manager locks
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# npm cache
+.npm/
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+
+# Environment variables for Node
+client/.env
+client/.env.local
+client/.env.*.local
+
+# TypeScript
+*.tsbuildinfo
+dist/
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# ENVIRONMENT & SECRETS
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+# Environment variable files (NEVER commit these!)
+.env
+.env.local
+.env.*.local
+.env.production.local
+.env.development.local
+.env.test.local
+
+# Secrets and credentials
+*.key
+*.pem
+*.pfx
+*.p12
+*.keystore
+*.jks
+secrets/
+.secrets/
+credentials.json
+credentials.yaml
+.credentials
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# LOGS & TEMPORARY FILES
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+# Log files
+*.log
+logs/
+*.log.*
+log.txt
+debug.log
+spring.log
+
+# Virtual machine crash logs
 hs_err_pid*
 replay_pid*
+
+# Temp files
+*.tmp
+*.temp
+*.bak
+*.backup
+*~
+.~lock.*
+temp/
+tmp/
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# OPERATING SYSTEM
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+*.swp
+*~.nib
+*.pbxuser
+*.xcworkspace
+.Xcode.plist
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+.vscode
+
+# Linux
+.directory
+.Trash-*
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# DOCKER & KUBERNETES
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+# Docker
+.dockerignore
+docker-compose.override.yml
+.docker/
+*.dockerfile.bak
+
+# Kubernetes
+k8s/*.override.yaml
+k8s/*-local.yaml
+kube/
+.kube/
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# DATABASE
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+# SQLite
+*.db
+*.sqlite
+*.sqlite3
+
+# MySQL backups
+*.sql
+*.sql.bak
+*.sql.gz
+
+# MongoDB
+*.mongodb
+mongodb-data/
+mongo-data/
+
+# Database dumps
+dump/
+backups/
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# BUILD & CACHE
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+# Gradle
+.gradle/
+gradle-wrapper.jar
+gradle-wrapper.properties
+gradlew
+gradlew.bat
+build/
+dist/
+
+# SBT
+.sbtopts
+.sbt-eclipse
+.sbt-idea
+target/
+lib_managed/
+src_managed/
+project/boot/
+project/plugins/project/
+
+# Maven cache
+.m2/
+.m2/repository/
+
+# Ant
+.ant/
+ant-build/
+dist/
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# MISC
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+# IDE Plugin specific files
+.jrebel/
+rebel.xml
+
+# Coverage reports
+coverage/
+.coverage
+htmlcov/
+.nyc_output/
+
+# Heap dumps
+*.hprof
+*.heap
+
+# Debugging ports
+*.port
+
+# Generated files
+generated/
+.generated/
+
+# OS locks
+.DS_Store
+Thumbs.db
