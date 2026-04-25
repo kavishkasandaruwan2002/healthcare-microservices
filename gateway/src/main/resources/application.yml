@@ -35,6 +35,8 @@ spring:
           uri: lb://telemedicine-service
           predicates:
             - Path=/api/telemedicine/**
+          filters:
+            - RewritePath=/api/telemedicine/(?!v3/api-docs)(?<segment>.*), /api/v1/${segment}
         - id: ai-service
           uri: lb://ai-service
           predicates:

@@ -62,6 +62,16 @@ public class AppointmentController {
     }
 
     /**
+     * Get appointment by ID
+     */
+    @GetMapping("/{id}")
+    @Operation(summary = "Get appointment by ID", description = "Retrieve a specific appointment by its ID")
+    public ResponseEntity<AppointmentResponse> getAppointmentById(@PathVariable String id) {
+        log.info("Fetching appointment by ID: {}", id);
+        return ResponseEntity.ok(appointmentService.getAppointmentById(id));
+    }
+
+    /**
      * Get doctor appointments
      */
     @GetMapping("/doctor/{doctorId}")

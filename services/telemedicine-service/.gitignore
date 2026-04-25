@@ -1,0 +1,5 @@
+# Allow service-specific documentation and configuration to be tracked
+!README.md
+!application.properties
+!telemedicine-api.postman_collection.json
+!*.postman_collection.json

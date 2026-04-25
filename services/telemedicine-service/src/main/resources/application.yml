@@ -1,18 +1,13 @@
 server:
-  port: 8086
-
+  port: 8084
 spring:
   application:
     name: telemedicine-service
-
-  # PostgreSQL Database
   datasource:
-    url: jdbc:postgresql://localhost:5432/telemedicine_db
-    username: postgres
-    password: postgres
+    url: jdbc:postgresql://${POSTGRES_HOST:postgres}:5432/telemedicine_db
+    username: ${POSTGRES_USER:postgres}
+    password: ${POSTGRES_PASSWORD:postgres}
     driver-class-name: org.postgresql.Driver
-
-  # JPA / Hibernate
   jpa:
     hibernate:
       ddl-auto: update
@@ -21,28 +16,25 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: true
-
+  rabbitmq:
+    host: ${RABBITMQ_HOST:rabbitmq}
+    port: ${RABBITMQ_PORT:5672}
 eureka:
   client:
     serviceUrl:
-      defaultZone: ${EUREKA_SERVER:http://localhost:8761/eureka/}
-
+      defaultZone: ${EUREKA_SERVER:http://eureka:8761/eureka/}
 springdoc:
   api-docs:
     path: /api/telemedicine/v3/api-docs
   swagger-ui:
     path: /api/telemedicine/swagger-ui.html
-
-# Agora
 agora:
-  app:
-    id: ${AGORA_APP_ID:your_agora_app_id}
-    certificate: ${AGORA_APP_CERTIFICATE:your_agora_app_certificate}
-
-service:
-  secret: ${SERVICE_SECRET:your-service-to-service-secret}
-
+  appId: ${AGORA_APP_ID}
+  appCertificate: ${AGORA_APP_CERTIFICATE}
 jwt:
-  secret: ${JWT_SECRET:your_jwt_secret_key_here}
+  secret: ${JWT_SECRET:your_actual_shared_secret_here}
 
-
+logging:
+  level:
+    org.springframework.security: DEBUG
+    org.springframework.web: DEBUG

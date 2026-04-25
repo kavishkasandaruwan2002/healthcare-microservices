@@ -55,9 +55,9 @@ class SessionServiceTest {
 
     @InjectMocks private SessionServiceImpl sessionService;
 
-    private UUID appointmentId;
-    private UUID patientId;
-    private UUID doctorId;
+    private String appointmentId;
+    private String patientId;
+    private String doctorId;
     private UUID sessionId;
     private UserPrincipal adminPrincipal;
     private UserPrincipal servicePrincipal;
@@ -67,9 +67,9 @@ class SessionServiceTest {
 
     @BeforeEach
     void init() {
-        appointmentId = UUID.randomUUID();
-        patientId = UUID.randomUUID();
-        doctorId = UUID.randomUUID();
+        appointmentId = UUID.randomUUID().toString();
+        patientId = UUID.randomUUID().toString();
+        doctorId = UUID.randomUUID().toString();
         sessionId = UUID.randomUUID();
 
         adminPrincipal = new UserPrincipal(UUID.randomUUID().toString(), "ADMIN");
@@ -588,7 +588,7 @@ class SessionServiceTest {
         Session session = baseSession(SessionStatus.WAITING, false, false);
         Page<Session> page = new PageImpl<>(List.of(session));
 
-        when(sessionRepository.findByPatientIdOrDoctorId(patientId, patientId, PageRequest.of(0, 10))).thenReturn(page);
+        when(sessionRepository.findByStatusAndParticipant(null, patientId, PageRequest.of(0, 10))).thenReturn(page);
 
         Page<SessionResponse> result = sessionService.getMySessions(patientPrincipal, null, PageRequest.of(0, 10));
 
