@@ -12,12 +12,12 @@ import org.springframework.data.domain.Pageable;
 import java.util.UUID;
 
 public interface PaymentService {
-    PaymentInitiateResponse initiatePayment(UUID appointmentId, UUID patientId);
+    PaymentInitiateResponse initiatePayment(String appointmentId, String patientId);
     void handleWebhook(String payload, String sigHeader) throws com.stripe.exception.SignatureVerificationException;
-    PaymentResponse getPaymentById(UUID paymentId, UUID userId, String role);
-    PaymentResponse getPaymentByAppointmentId(UUID appointmentId, UUID userId, String role);
-    Page<PaymentResponse> getMyPayments(UUID patientId, String status, Pageable pageable);
+    PaymentResponse getPaymentById(UUID paymentId, String userId, String role);
+    PaymentResponse getPaymentByAppointmentId(String appointmentId, String userId, String role);
+    Page<PaymentResponse> getMyPayments(String patientId, String status, Pageable pageable);
     RefundResponse issueRefund(UUID paymentId, RefundRequest request);
-    Page<PaymentResponse> getAllPayments(String status, UUID patientId, Pageable pageable);
+    Page<PaymentResponse> getAllPayments(String status, String patientId, Pageable pageable);
     PaymentStatsResponse getPaymentStats();
 }

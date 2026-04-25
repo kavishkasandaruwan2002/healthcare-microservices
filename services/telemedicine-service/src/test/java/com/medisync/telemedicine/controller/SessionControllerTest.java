@@ -58,9 +58,9 @@ class SessionControllerTest {
     @MockBean private JpaMetamodelMappingContext jpaMetamodelMappingContext;
 
     private UUID sessionId;
-    private UUID appointmentId;
-    private UUID patientId;
-    private UUID doctorId;
+    private String appointmentId;
+    private String patientId;
+    private String doctorId;
     private UserPrincipal adminPrincipal;
     private UserPrincipal patientPrincipal;
     private UserPrincipal doctorPrincipal;
@@ -69,9 +69,9 @@ class SessionControllerTest {
     @BeforeEach
     void setup() throws Exception {
         sessionId = UUID.randomUUID();
-        appointmentId = UUID.randomUUID();
-        patientId = UUID.randomUUID();
-        doctorId = UUID.randomUUID();
+        appointmentId = UUID.randomUUID().toString();
+        patientId = UUID.randomUUID().toString();
+        doctorId = UUID.randomUUID().toString();
 
         adminPrincipal = new UserPrincipal(UUID.randomUUID().toString(), "ADMIN");
         patientPrincipal = new UserPrincipal(patientId.toString(), "PATIENT");

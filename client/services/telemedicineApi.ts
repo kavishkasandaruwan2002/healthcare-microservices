@@ -15,6 +15,20 @@ telemedicineApi.interceptors.request.use((config) => {
   return config
 })
 
+// Auto-handle expired / missing token → redirect to login
+telemedicineApi.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401 && typeof window !== 'undefined') {
+      console.warn('[telemedicineApi] 401 received – clearing stale token and redirecting to login')
+      localStorage.removeItem('token')
+      localStorage.removeItem('user')
+      window.location.href = '/patient/login?reason=session_expired'
+    }
+    return Promise.reject(error)
+  }
+)
+
 export interface SessionResponse {
   sessionId: string
   channelName: string
@@ -38,6 +52,12 @@ export interface TokenResponse {
 }
 
 export const telemedicineApiService = {
+  // Create a session
+  createSession: async (data: { appointmentId: string; patientId: string; doctorId: string; scheduledAt: string }): Promise<SessionResponse> => {
+    const res = await telemedicineApi.post('/sessions/create', data)
+    return res.data
+  },
+
   // Get session by appointment ID
   getSessionByAppointment: async (appointmentId: string): Promise<SessionResponse> => {
     const res = await telemedicineApi.get(`/sessions/appointment/${appointmentId}`)

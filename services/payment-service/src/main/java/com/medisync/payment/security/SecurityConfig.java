@@ -32,41 +32,21 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-            .csrf(csrf -> csrf.disable()) // Critical for POST requests
-            .cors(Customizer.withDefaults()) // Tell Spring to use the CORS filter
+            .csrf(csrf -> csrf.disable()) 
+            .cors(cors -> cors.disable()) // Disable internal CORS, Gateway handles it
+            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-            .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll() // Allow preflight
-            .requestMatchers("/api/v1/payments/stripe-callback").permitAll() // Allow Stripe webhooks
-            .requestMatchers("/api/v1/payments/**").authenticated()
-            .anyRequest().permitAll()
-        );
+                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll() 
+                .requestMatchers("/api/v1/payments/stripe-callback").permitAll()
+                .requestMatchers("/api/v1/payments/**").authenticated()
+                .anyRequest().permitAll()
+            );
+
+        // Add our custom filters
+        http.addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+        http.addFilterBefore(serviceAuthFilter, UsernamePasswordAuthenticationFilter.class);
+        
         return http.build();
-    }
-
-    @Bean
-    public org.springframework.web.cors.CorsConfigurationSource corsConfigurationSource() {
-        org.springframework.web.cors.CorsConfiguration configuration = new org.springframework.web.cors.CorsConfiguration();
-        configuration.setAllowCredentials(true);
-        configuration.setAllowedOriginPatterns(java.util.List.of("*"));
-        configuration.setAllowedMethods(java.util.Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
-        configuration.setAllowedHeaders(java.util.Arrays.asList(
-                "Authorization",
-                "Content-Type",
-                "X-Requested-With",
-                "X-Service-Secret",
-                "Accept",
-                "Origin"
-        ));
-        configuration.setExposedHeaders(java.util.Arrays.asList(
-                "Authorization",
-                "Content-Disposition"
-        ));
-        configuration.setMaxAge(3600L);
-
-        org.springframework.web.cors.UrlBasedCorsConfigurationSource source =
-                new org.springframework.web.cors.UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", configuration);
-        return source;
     }
 
     @Bean

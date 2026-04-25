@@ -17,7 +17,7 @@ public class Participant {
     @JoinColumn(name = "session_id")
     private Session session;
     @Column(nullable = false)
-    private UUID userId;
+    private String userId;
     @Enumerated(EnumType.STRING)
     private ParticipantRole role;
     private LocalDateTime joinedAt;

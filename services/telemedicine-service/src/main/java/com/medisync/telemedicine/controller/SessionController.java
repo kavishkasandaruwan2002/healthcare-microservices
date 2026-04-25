@@ -34,7 +34,7 @@ public class SessionController {
     @GetMapping("/{sessionId}") @Operation(summary="Get session", description="Get session by id") @ApiResponse(responseCode="200", description="Success") @ApiResponse(responseCode="403", description="Access denied") @ApiResponse(responseCode="404", description="Session not found")
     public SessionResponse get(@PathVariable UUID sessionId, Authentication auth){ return sessionService.getSession(sessionId, principal(auth)); }
     @GetMapping("/appointment/{appointmentId}") @Operation(summary="Get by appointment", description="Get session by appointment id") @ApiResponse(responseCode="200", description="Success")
-    public SessionResponse getByAppointment(@PathVariable UUID appointmentId, Authentication auth){ return sessionService.getSessionByAppointmentId(appointmentId, principal(auth)); }
+    public SessionResponse getByAppointment(@PathVariable String appointmentId, Authentication auth){ return sessionService.getSessionByAppointmentId(appointmentId, principal(auth)); }
     @GetMapping("/my-sessions") @Operation(summary="My sessions", description="List my sessions")
     public Page<SessionResponse> mySessions(@RequestParam(required = false) SessionStatus status, @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "10") int size, Authentication auth){ return sessionService.getMySessions(principal(auth), status, PageRequest.of(page,size)); }
     @GetMapping("/{sessionId}/token") @Operation(summary="Get token", description="Generate Agora token")
@@ -46,7 +46,7 @@ public class SessionController {
     @PutMapping("/{sessionId}/cancel") @Operation(summary="Cancel session", description="Cancel waiting session")
     public SessionResponse cancel(@PathVariable UUID sessionId, @RequestBody @Valid CancelSessionRequest request, Authentication auth){ return sessionService.cancelSession(sessionId, request, principal(auth)); }
     @GetMapping @Operation(summary="Admin list sessions", description="List sessions with filters")
-    public Page<SessionResponse> all(@RequestParam(required = false) SessionStatus status, @RequestParam(required = false) UUID doctorId, @RequestParam(required = false) UUID patientId, @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size, Authentication auth){ return sessionService.getAllSessions(status, doctorId, patientId, PageRequest.of(page,size), principal(auth)); }
+    public Page<SessionResponse> all(@RequestParam(required = false) SessionStatus status, @RequestParam(required = false) String doctorId, @RequestParam(required = false) String patientId, @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size, Authentication auth){ return sessionService.getAllSessions(status, doctorId, patientId, PageRequest.of(page,size), principal(auth)); }
     @GetMapping("/{sessionId}/participants") @Operation(summary="List participants", description="Get participants")
     public List<ParticipantResponse> participants(@PathVariable UUID sessionId, Authentication auth){ return sessionService.getParticipants(sessionId, principal(auth)); }
     @GetMapping("/stats") @Operation(summary="Session stats", description="Get aggregated stats")

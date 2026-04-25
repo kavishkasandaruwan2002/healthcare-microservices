@@ -71,16 +71,16 @@ class PaymentServiceTest {
     private PaymentServiceImpl paymentService;
 
     private UUID paymentId;
-    private UUID appointmentId;
-    private UUID patientId;
-    private UUID doctorId;
+    private String appointmentId;
+    private String patientId;
+    private String doctorId;
 
     @BeforeEach
     void setUp() {
         paymentId = UUID.randomUUID();
-        appointmentId = UUID.randomUUID();
-        patientId = UUID.randomUUID();
-        doctorId = UUID.randomUUID();
+        appointmentId = UUID.randomUUID().toString();
+        patientId = UUID.randomUUID().toString();
+        doctorId = UUID.randomUUID().toString();
 
         lenient().when(meterRegistry.counter(anyString())).thenReturn(counter);
         ReflectionTestUtils.setField(paymentService, "stripeWebhookSecret", "whsec_test");
@@ -346,7 +346,7 @@ class PaymentServiceTest {
                 .status(PaymentStatus.SUCCESS)
                 .build();
 
-        UUID otherPatientId = UUID.randomUUID();
+        String otherPatientId = UUID.randomUUID().toString();
         when(paymentRepository.findById(paymentId)).thenReturn(Optional.of(payment));
 
         assertThrows(AccessDeniedException.class, () ->

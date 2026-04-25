@@ -57,7 +57,7 @@ public class AppointmentService {
         String patientName  = "";
         String patientEmail = "";
         String patientPhone = "";
-        if (!patientDetails.isEmpty()) {
+        if (patientDetails != null && !patientDetails.isEmpty()) {
             patientName  = safeStr(patientDetails.get("name"));
             patientEmail = safeStr(patientDetails.get("email"));
             patientPhone = safeStr(patientDetails.getOrDefault("phone", ""));
@@ -70,7 +70,7 @@ public class AppointmentService {
         String doctorName           = "";
         String doctorEmail          = "";
         String doctorSpecialization = "";
-        if (!doctorDetails.isEmpty()) {
+        if (doctorDetails != null && !doctorDetails.isEmpty()) {
             doctorName           = safeStr(doctorDetails.get("name"));
             doctorEmail          = safeStr(doctorDetails.get("email"));
             doctorSpecialization = safeStr(doctorDetails.getOrDefault("specialization", ""));
@@ -125,7 +125,7 @@ public class AppointmentService {
         Map<String, Object> patientDetails = externalServiceClient.getPatientDetails(request.getPatientId());
         String patientName  = "";
         String patientEmail = "";
-        if (!patientDetails.isEmpty()) {
+        if (patientDetails != null && !patientDetails.isEmpty()) {
             patientName  = safeStr(patientDetails.get("name"));
             patientEmail = safeStr(patientDetails.get("email"));
             appointment.setPatientName(patientName);
@@ -137,7 +137,7 @@ public class AppointmentService {
         Map<String, Object> doctorDetails = externalServiceClient.getDoctorDetails(request.getDoctorId());
         String doctorName           = "";
         String doctorSpecialization = "";
-        if (!doctorDetails.isEmpty()) {
+        if (doctorDetails != null && !doctorDetails.isEmpty()) {
             doctorName           = safeStr(doctorDetails.get("name"));
             doctorSpecialization = safeStr(doctorDetails.getOrDefault("specialization", ""));
             appointment.setDoctorName(doctorName);
@@ -175,6 +175,34 @@ public class AppointmentService {
         return appointmentRepository.findByPatientId(patientId).stream()
                 .map(appointmentMapper::toResponse)
                 .collect(Collectors.toList());
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Get Appointment by ID
+    // ─────────────────────────────────────────────────────────────────────────
+
+    public AppointmentResponse getAppointmentById(String id) {
+        log.info("Fetching appointment by ID: {}", id);
+        Appointment appointment = appointmentRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Appointment not found: " + id));
+        
+        AppointmentResponse response = appointmentMapper.toResponse(appointment);
+        
+        // Enrich with patient details if missing
+        Map<String, Object> patientDetails = externalServiceClient.getPatientDetails(appointment.getPatientId());
+        if (patientDetails != null && !patientDetails.isEmpty()) {
+            if (response.getPatientName() == null || response.getPatientName().isBlank()) {
+                response.setPatientName(safeStr(patientDetails.get("name")));
+            }
+            if (response.getPatientEmail() == null || response.getPatientEmail().isBlank()) {
+                response.setPatientEmail(safeStr(patientDetails.get("email")));
+            }
+            if (response.getPatientPhone() == null || response.getPatientPhone().isBlank()) {
+                response.setPatientPhone(safeStr(patientDetails.getOrDefault("phone", "")));
+            }
+        }
+        
+        return response;
     }
 
     // ─────────────────────────────────────────────────────────────────────────

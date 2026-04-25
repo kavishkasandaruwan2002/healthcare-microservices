@@ -4,4 +4,4 @@ import lombok.*;
 import java.time.LocalDateTime;
 import java.util.UUID;
 @Data @Builder @NoArgsConstructor @AllArgsConstructor
-public class ParticipantResponse { private UUID participantId; private UUID userId; private ParticipantRole role; private LocalDateTime joinedAt; private LocalDateTime leftAt; private Integer agoraUid; }
+public class ParticipantResponse { private UUID participantId; private String userId; private ParticipantRole role; private LocalDateTime joinedAt; private LocalDateTime leftAt; private Integer agoraUid; }

@@ -15,11 +15,11 @@ import java.util.UUID;
 
 @Repository
 public interface PaymentRepository extends JpaRepository<Payment, UUID> {
-    Optional<Payment> findByAppointmentId(UUID appointmentId);
+    Optional<Payment> findByAppointmentId(String appointmentId);
     Optional<Payment> findByStripePaymentIntentId(String intentId);
     Optional<Payment> findByStripeSubscriptionId(String subscriptionId);
     Optional<Payment> findFirstByStripeCustomerIdOrderByCreatedAtDesc(String customerId);
-    Page<Payment> findByPatientId(UUID patientId, Pageable p);
+    Page<Payment> findByPatientId(String patientId, Pageable p);
     Page<Payment> findByStatus(PaymentStatus status, Pageable p);
 
     @Query("SELECT p FROM Payment p WHERE " +
@@ -27,7 +27,7 @@ public interface PaymentRepository extends JpaRepository<Payment, UUID> {
            "(:patientId IS NULL OR p.patientId = :patientId)")
     Page<Payment> findAllWithFilters(
             @Param("status") PaymentStatus status,
-            @Param("patientId") UUID patientId,
+            @Param("patientId") String patientId,
             Pageable pageable);
 
     long countByStatus(PaymentStatus status);

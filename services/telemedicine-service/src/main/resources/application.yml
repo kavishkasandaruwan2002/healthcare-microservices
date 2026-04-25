@@ -16,6 +16,9 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: true
+  rabbitmq:
+    host: ${RABBITMQ_HOST:rabbitmq}
+    port: ${RABBITMQ_PORT:5672}
 eureka:
   client:
     serviceUrl:
@@ -30,3 +33,8 @@ agora:
   appCertificate: ${AGORA_APP_CERTIFICATE}
 jwt:
   secret: ${JWT_SECRET:your_actual_shared_secret_here}
+
+logging:
+  level:
+    org.springframework.security: DEBUG
+    org.springframework.web: DEBUG

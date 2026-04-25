@@ -9,6 +9,6 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface ParticipantRepository extends JpaRepository<Participant, UUID> {
-    Optional<Participant> findBySessionAndUserId(Session session, UUID userId);
+    Optional<Participant> findBySessionAndUserId(Session session, String userId);
     List<Participant> findBySession(Session session);
 }

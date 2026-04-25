@@ -18,11 +18,11 @@ public class Session {
     @Id @GeneratedValue(strategy = GenerationType.AUTO)
     private UUID sessionId;
     @Column(unique = true, nullable = false)
-    private UUID appointmentId;
+    private String appointmentId;
     @Column(nullable = false)
-    private UUID patientId;
+    private String patientId;
     @Column(nullable = false)
-    private UUID doctorId;
+    private String doctorId;
     @Column(unique = true, nullable = false)
     private String channelName;
     @Enumerated(EnumType.STRING)

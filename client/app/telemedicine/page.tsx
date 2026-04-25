@@ -57,50 +57,107 @@ function TelemedicineContent() {
   const localVideoRef = useRef<HTMLDivElement>(null)
   const remoteVideoRef = useRef<HTMLDivElement>(null)
 
-  // ─── MOCK CONFIGURATION (BYPASSING BACKEND) ───
-  const MOCK_CONFIG = {
-    appId: "54cb8fe72f0541e985f1acdabd7cb5af",
-    token: "007eJxTYIiPnHKzfNYS2fN6BX8PSLZuKbGLOn1f9gZD25v7KoKTXoYpMJiaJCdZpKWaG6UZmJoYplpamKYZJianJCalmCcnmSam9cQ8ymwIZGTolXnPxMgAgSA+J0NuakpmfHFlXjIDAwB0TyOi",
-    channel: "medi_sync"
-  }
 
   useEffect(() => {
+    // ── Cancellation flag + closure-scoped resource refs ──────────────────
+    // All three live at the useEffect scope so the cleanup return can
+    // reach them even if the component unmounts mid-async-call.
+    let cancelled = false
+    let localClient: IAgoraRTCClient | null = null
+    let localAudio: IMicrophoneAudioTrack | null = null
+    let localVideo: ICameraVideoTrack | null = null
+
     if (!isAuthenticated || !user) return
-    
-    // If no ID is provided, fetch appointments (standard behavior)
+
+    // ── Branch A: no IDs → show appointment picker ────────────────────────
     if (!sessionId && !appointmentId) {
       const fetchTeleAppointments = async () => {
         setLoadingAppointments(true)
         try {
           const res = await api.get(`/appointments/patient/${user.id}`)
-          const tele = res.data.filter((a: any) => 
-            a.appointmentType === 'TELEMEDICINE' && 
+          if (cancelled) return
+          const tele = res.data.filter((a: any) =>
+            a.appointmentType === 'TELEMEDICINE' &&
             (a.status === 'CONFIRMED' || a.status === 'PENDING')
           )
           setAvailableAppointments(tele)
         } catch (e) {
+          if (cancelled) return
           console.error('Failed to fetch tele-appointments', e)
           setJoinError("Could not find any active telemedicine sessions.")
         } finally {
-          setLoadingAppointments(false)
+          if (!cancelled) setLoadingAppointments(false)
         }
       }
       fetchTeleAppointments()
-      return
+      return () => { cancelled = true }
     }
 
+    // ── Branch B: join channel ────────────────────────────────────────────
     const joinChannel = async () => {
       setIsJoining(true)
       setJoinError(null)
       try {
-        // Initialize Agora
-        const AgoraRTC = (await import('agora-rtc-sdk-ng')).default
-        const client = AgoraRTC.createClient({ mode: 'rtc', codec: 'vp8' })
-        setAgoraClient(client)
+        let currentSessionId = sessionId
 
-        // Remote User Event Handlers
-        client.on('user-published', async (remoteUser, mediaType) => {
-          await client.subscribe(remoteUser, mediaType)
+        // 1. Resolve Session ID if only appointmentId is provided
+        if (!currentSessionId && appointmentId) {
+          try {
+            const session = await telemedicineApiService.getSessionByAppointment(appointmentId)
+            if (cancelled) return
+            currentSessionId = session.sessionId
+            setSessionData(session)
+          } catch (e: any) {
+            if (e.response?.status === 404) {
+              console.log('Session not found, attempting to auto-create...')
+              try {
+                const aptRes = await api.get(`/appointments/${appointmentId}`)
+                if (cancelled) return
+                const apt = aptRes.data
+
+                const newSession = await telemedicineApiService.createSession({
+                  appointmentId: apt.id,
+                  patientId: apt.patientId,
+                  doctorId: apt.doctorId,
+                  scheduledAt: apt.appointmentTime || new Date().toISOString().split('.')[0]
+                })
+                if (cancelled) return
+
+                currentSessionId = newSession.sessionId
+                setSessionData(newSession)
+              } catch (createErr) {
+                if (cancelled) return
+                console.error('Failed to auto-create session', createErr)
+                throw new Error("Could not auto-create the video session. Please try again.")
+              }
+            } else {
+              if (cancelled) return
+              console.error('Failed to resolve session from appointment', e)
+              throw new Error("Could not find a video session for this appointment. Please ensure it's confirmed.")
+            }
+          }
+        }
+
+        if (!currentSessionId) {
+          throw new Error("No session ID provided.")
+        }
+
+        // 2. Fetch Agora Token
+        console.log('Fetching token for session:', currentSessionId)
+        const tokenData = await telemedicineApiService.getToken(currentSessionId)
+        if (cancelled) return
+        console.log('Token received successfully')
+
+        // 3. Create Agora client INSIDE the effect so each mount gets its own instance
+        const AgoraRTC = (await import('agora-rtc-sdk-ng')).default
+        if (cancelled) return
+
+        localClient = AgoraRTC.createClient({ mode: 'rtc', codec: 'vp8' })
+        setAgoraClient(localClient)
+
+        // Remote user handlers
+        localClient.on('user-published', async (remoteUser, mediaType) => {
+          await localClient?.subscribe(remoteUser, mediaType)
           if (mediaType === 'video') {
             setRemoteUsers(prev => [...prev.filter(u => u.uid !== remoteUser.uid), remoteUser])
             setTimeout(() => {
@@ -114,42 +171,79 @@ function TelemedicineContent() {
           }
         })
 
-        client.on('user-unpublished', (remoteUser) => {
+        localClient.on('user-unpublished', (remoteUser) => {
           setRemoteUsers(prev => prev.filter(u => u.uid !== remoteUser.uid))
         })
 
-        // JOIN USING MOCK DATA (SKIP TOKEN API CALLS)
-        await client.join(
-          MOCK_CONFIG.appId,
-          MOCK_CONFIG.channel,
-          MOCK_CONFIG.token,
-          0 // Random UID
+        // 4. Join channel
+        await localClient.join(
+          tokenData.agoraAppId,
+          tokenData.channelName,
+          tokenData.token,
+          tokenData.uid
         )
-
-        // Create Local Tracks
-        const [audioTrack, videoTrack] = await AgoraRTC.createMicrophoneAndCameraTracks()
-        setLocalAudioTrack(audioTrack)
-        setLocalVideoTrack(videoTrack)
-
-        // Play local video in the PIP window
-        if (localVideoRef.current) {
-          videoTrack.play(localVideoRef.current)
+        if (cancelled) {
+          localClient.leave().catch(() => {})
+          return
         }
 
-        // Publish to the channel
-        await client.publish([audioTrack, videoTrack])
+        // 5. Create local tracks
+        const tracks = await AgoraRTC.createMicrophoneAndCameraTracks()
+        localAudio = tracks[0]
+        localVideo = tracks[1]
+
+        if (cancelled) {
+          localAudio.stop(); localAudio.close()
+          localVideo.stop(); localVideo.close()
+          localClient.leave().catch(() => {})
+          return
+        }
+
+        setLocalAudioTrack(localAudio)
+        setLocalVideoTrack(localVideo)
+
+        if (localVideoRef.current) {
+          localVideo.play(localVideoRef.current)
+        }
+
+        // 6. Publish — only if not cancelled
+        if (!cancelled) {
+          await localClient.publish([localAudio, localVideo])
+        }
+
+        if (cancelled) {
+          localAudio.stop(); localAudio.close()
+          localVideo.stop(); localVideo.close()
+          localClient.leave().catch(() => {})
+          return
+        }
+
         setActiveCall(true)
 
       } catch (err: unknown) {
+        if (cancelled) return
         const message = err instanceof Error ? err.message : 'Failed to join session'
         setJoinError(message)
-        console.error('Agora join error:', err)
+        console.error('Telemedicine join error:', err)
+        toast.error(message)
       } finally {
-        setIsJoining(false)
+        if (!cancelled) {
+          setIsJoining(false)
+        }
       }
     }
 
     joinChannel()
+
+    // ── Cleanup: runs on unmount OR when deps change ───────────────────────
+    // Setting cancelled=true is the FIRST action so every pending await
+    // that checks `cancelled` will bail out before touching state or client.
+    return () => {
+      cancelled = true
+      if (localAudio) { localAudio.stop(); localAudio.close() }
+      if (localVideo) { localVideo.stop(); localVideo.close() }
+      if (localClient) { localClient.leave().catch(() => {}) }
+    }
   }, [isAuthenticated, user, sessionId, appointmentId])
 
   // Call timer logic
@@ -160,17 +254,6 @@ function TelemedicineContent() {
     }
     return () => clearInterval(interval)
   }, [activeCall])
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      localAudioTrack?.stop()
-      localAudioTrack?.close()
-      localVideoTrack?.stop()
-      localVideoTrack?.close()
-      agoraClient?.leave()
-    }
-  }, [agoraClient, localAudioTrack, localVideoTrack])
 
   const handleMuteToggle = async () => {
     if (localAudioTrack) {
@@ -206,7 +289,7 @@ function TelemedicineContent() {
   const formatTimer = (s: number) => {
     const mins = Math.floor(s / 60)
     const secs = s % 60
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '00')}`
   }
 
   if (isJoining) return (
@@ -292,7 +375,7 @@ function TelemedicineContent() {
       {/* ─── Header Overlay ─── */}
       <div className="absolute top-0 left-0 right-0 p-8 flex items-start justify-between pointer-events-none z-20">
         <div className="glass-dark px-4 py-2 rounded-2xl border border-white/5 text-sm font-black text-white">
-          CHANNEL: {MOCK_CONFIG.channel.toUpperCase()}
+          CHANNEL: {sessionData?.channelName?.toUpperCase() || (sessionId || appointmentId || 'SESSION').toUpperCase()}
         </div>
         <div className="glass-dark px-6 py-3 rounded-2xl border border-white/5 flex items-center gap-3 text-primary-400 font-bold">
            <Clock className="h-4 w-4" /> {formatTimer(timer)}

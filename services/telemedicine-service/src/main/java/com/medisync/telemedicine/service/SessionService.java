@@ -16,12 +16,12 @@ public interface SessionService {
     SessionResponse createSession(CreateSessionRequest request, UserPrincipal principal);
     SessionResponse createSessionFromEvent(AppointmentConfirmedEvent event);
     SessionResponse getSession(UUID sessionId, UserPrincipal principal);
-    SessionResponse getSessionByAppointmentId(UUID appointmentId, UserPrincipal principal);
+    SessionResponse getSessionByAppointmentId(String appointmentId, UserPrincipal principal);
     Page<SessionResponse> getMySessions(UserPrincipal principal, SessionStatus status, Pageable pageable);
     TokenResponse generateToken(UUID sessionId, UserPrincipal principal, boolean refreshOnly);
     EndSessionResponse endSession(UUID sessionId, UserPrincipal principal);
     SessionResponse cancelSession(UUID sessionId, CancelSessionRequest request, UserPrincipal principal);
-    Page<SessionResponse> getAllSessions(SessionStatus status, UUID doctorId, UUID patientId, Pageable pageable, UserPrincipal principal);
+    Page<SessionResponse> getAllSessions(SessionStatus status, String doctorId, String patientId, Pageable pageable, UserPrincipal principal);
     List<ParticipantResponse> getParticipants(UUID sessionId, UserPrincipal principal);
     SessionStatsResponse getStats(UserPrincipal principal);
 }

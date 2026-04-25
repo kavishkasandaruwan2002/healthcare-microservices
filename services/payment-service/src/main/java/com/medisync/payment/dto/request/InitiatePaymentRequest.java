@@ -12,5 +12,5 @@ import java.util.UUID;
 @AllArgsConstructor
 public class InitiatePaymentRequest {
     @NotNull(message = "Appointment ID is required")
-    private UUID appointmentId;
+    private String appointmentId;
 }

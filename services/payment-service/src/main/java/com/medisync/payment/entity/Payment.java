@@ -26,13 +26,13 @@ public class Payment {
     private UUID paymentId;
 
     @Column(nullable = true)
-    private UUID appointmentId;
+    private String appointmentId;
 
     @Column(nullable = false)
-    private UUID patientId;
+    private String patientId;
 
     @Column(nullable = true)
-    private UUID doctorId;
+    private String doctorId;
 
     @Column(unique = true)
     private String stripePaymentIntentId;

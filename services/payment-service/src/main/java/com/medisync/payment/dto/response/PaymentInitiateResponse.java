@@ -19,4 +19,5 @@ public class PaymentInitiateResponse {
     private String currency;
     private String status;
     private String stripePublishableKey;
+    private String checkoutUrl;
 }

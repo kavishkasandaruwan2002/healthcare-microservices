@@ -6,8 +6,8 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class AgoraTokenService {
-    @Value("${agora.app.id}") private String appId;
-    @Value("${agora.app.certificate}") private String appCertificate;
+    @Value("${agora.appId}") private String appId;
+    @Value("${agora.appCertificate}") private String appCertificate;
 
     public String generateToken(String channelName, int uid){
         try {

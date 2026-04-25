@@ -71,7 +71,7 @@ public class PaymentController {
 
         PaymentInitiateResponse response = paymentService.initiatePayment(
                 request.getAppointmentId(),
-                UUID.fromString(userPrincipal.getUserId()));
+                userPrincipal.getUserId());
 
         return ResponseEntity.ok(response);
     }
@@ -92,7 +92,7 @@ public class PaymentController {
 
         PaymentResponse response = paymentService.getPaymentById(
                 paymentId,
-                UUID.fromString(userPrincipal.getUserId()),
+                userPrincipal.getUserId(),
                 userPrincipal.getRole());
 
         return ResponseEntity.ok(response);
@@ -106,7 +106,7 @@ public class PaymentController {
             @ApiResponse(responseCode = "403", description = "Access denied")
     })
     public ResponseEntity<PaymentResponse> getPaymentByAppointmentId(
-            @PathVariable UUID appointmentId,
+            @PathVariable String appointmentId,
             @AuthenticationPrincipal UserPrincipal userPrincipal) {
 
         log.info("Getting payment for appointment: {} for user: {}",
@@ -114,7 +114,7 @@ public class PaymentController {
 
         PaymentResponse response = paymentService.getPaymentByAppointmentId(
                 appointmentId,
-                UUID.fromString(userPrincipal.getUserId()),
+                userPrincipal.getUserId(),
                 userPrincipal.getRole());
 
         return ResponseEntity.ok(response);
@@ -134,7 +134,7 @@ public class PaymentController {
         log.info("Getting payments for patient: {}", userPrincipal.getUserId());
 
         Page<PaymentResponse> response = paymentService.getMyPayments(
-                UUID.fromString(userPrincipal.getUserId()),
+                userPrincipal.getUserId(),
                 status,
                 pageable);
 
@@ -172,7 +172,7 @@ public class PaymentController {
     })
     public ResponseEntity<Page<PaymentResponse>> getAllPayments(
             @RequestParam(required = false) String status,
-            @RequestParam(required = false) UUID patientId,
+            @RequestParam(required = false) String patientId,
             @PageableDefault(size = 20) Pageable pageable) {
 
         log.info("Getting all payments with filters: status={}, patientId={}", status, patientId);

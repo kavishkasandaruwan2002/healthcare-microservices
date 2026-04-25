@@ -41,7 +41,19 @@ public class SessionServiceImpl implements SessionService {
     @Transactional
     public SessionResponse createSession(CreateSessionRequest req, UserPrincipal principal) {
         if(sessionRepository.findByAppointmentId(req.getAppointmentId()).isPresent()) throw new SessionAlreadyExistsException("Session already exists for appointmentId: " + req.getAppointmentId());
-        if(principal == null || (!principal.isAdmin() && !"SERVICE".equals(principal.getRole()))) throw new AccessDeniedException("Only admin or service can create session");
+        if (principal == null) {
+            throw new AccessDeniedException("Authentication required");
+        }
+        
+        // Allow if ADMIN, SERVICE, or if the user is the patient or doctor for this session
+        boolean isAuthorized = principal.isAdmin() || 
+                             "SERVICE".equals(principal.getRole()) ||
+                             principal.getUserId().equals(req.getPatientId()) ||
+                             principal.getUserId().equals(req.getDoctorId());
+                             
+        if (!isAuthorized) {
+            throw new AccessDeniedException("You can only create sessions for your own appointments");
+        }
         if (req.getScheduledAt().isBefore(LocalDateTime.now().minusHours(24))) {
             throw new InvalidSessionStateException("Scheduled time cannot be more than 24 hours in the past");
         }
@@ -56,7 +68,7 @@ public class SessionServiceImpl implements SessionService {
     }
 
     @Override public SessionResponse getSession(UUID sessionId, UserPrincipal p){ Session s=getById(sessionId); authorizeAccess(s,p,false); return toResponse(s); }
-    @Override public SessionResponse getSessionByAppointmentId(UUID appointmentId, UserPrincipal p){ Session s=sessionRepository.findByAppointmentId(appointmentId).orElseThrow(() -> new SessionNotFoundException("Session not found with appointment id: "+appointmentId)); authorizeAccess(s,p,false); return toResponse(s); }
+    @Override public SessionResponse getSessionByAppointmentId(String appointmentId, UserPrincipal p){ Session s=sessionRepository.findByAppointmentId(appointmentId).orElseThrow(() -> new SessionNotFoundException("Session not found with appointment id: "+appointmentId)); authorizeAccess(s,p,false); return toResponse(s); }
     @Override
     public Page<SessionResponse> getMySessions(UserPrincipal p, SessionStatus status, Pageable pageable){
         if(p.isAdmin()){
@@ -65,7 +77,7 @@ public class SessionServiceImpl implements SessionService {
             }
             return sessionRepository.findAll(pageable).map(this::toResponse);
         }
-        UUID uid = UUID.fromString(p.getUserId());
+        String uid = p.getUserId();
         return sessionRepository.findByStatusAndParticipant(status, uid, pageable).map(this::toResponse);
     }
 
@@ -86,7 +98,7 @@ public class SessionServiceImpl implements SessionService {
             throw new InvalidSessionStateException("Session status does not allow token generation");
         }
 
-        UUID uid = UUID.fromString(p.getUserId());
+        String uid = p.getUserId();
         Participant participant = participantRepository.findBySessionAndUserId(s, uid).orElseGet(() ->
             participantRepository.save(Participant.builder()
                 .session(s)
@@ -141,9 +153,10 @@ public class SessionServiceImpl implements SessionService {
     @Transactional
     public EndSessionResponse endSession(UUID sessionId, UserPrincipal p) {
         Session s = getById(sessionId);
+        String currentUserId = p.getUserId();
 
         // Authorization: only admin or assigned doctor can end
-        if(!(p.isAdmin() || (p.isDoctor() && UUID.fromString(p.getUserId()).equals(s.getDoctorId())))) {
+        if(!(p.isAdmin() || (p.isDoctor() && currentUserId.equals(s.getDoctorId())))) {
             throw new AccessDeniedException("Only assigned doctor or admin can end session");
         }
 
@@ -203,13 +216,13 @@ public class SessionServiceImpl implements SessionService {
         return toResponse(sessionRepository.save(s));
     }
 
-    @Override public Page<SessionResponse> getAllSessions(SessionStatus status, UUID doctorId, UUID patientId, Pageable pageable, UserPrincipal p){ if(!p.isAdmin()) throw new AccessDeniedException("Admin only"); return sessionRepository.findAllWithFilters(status,doctorId,patientId,pageable).map(this::toResponse); }
+    @Override public Page<SessionResponse> getAllSessions(SessionStatus status, String doctorId, String patientId, Pageable pageable, UserPrincipal p){ if(!p.isAdmin()) throw new AccessDeniedException("Admin only"); return sessionRepository.findAllWithFilters(status,doctorId,patientId,pageable).map(this::toResponse); }
 
     @Override
     public List<ParticipantResponse> getParticipants(UUID sessionId, UserPrincipal p) {
         Session s = getById(sessionId);
         // Authorization: admin or assigned doctor only
-        if(!(p.isAdmin() || (p.isDoctor() && UUID.fromString(p.getUserId()).equals(s.getDoctorId())))) {
+        if(!(p.isAdmin() || (p.isDoctor() && p.getUserId().equals(s.getDoctorId())))) {
             throw new AccessDeniedException("Access denied");
         }
         // Return empty list if no participants, not 404
@@ -220,13 +233,12 @@ public class SessionServiceImpl implements SessionService {
     private Session getById(UUID id){ return sessionRepository.findById(id).orElseThrow(() -> new SessionNotFoundException("Session not found with id: " + id)); }
     private void authorizeAccess(Session s, UserPrincipal p, boolean doctorOnly){
         if(p.isAdmin()) return;
-        UUID uid=UUID.fromString(p.getUserId());
+        String uid=p.getUserId();
         if(doctorOnly && !uid.equals(s.getDoctorId())) throw new AccessDeniedException("Access denied");
         assertCallerIsParticipant(s, p.getUserId());
     }
     private void assertCallerIsParticipant(Session session, String callerId){
-        UUID uid = UUID.fromString(callerId);
-        if(!uid.equals(session.getPatientId()) && !uid.equals(session.getDoctorId())) {
+        if(!callerId.equals(session.getPatientId()) && !callerId.equals(session.getDoctorId())) {
             throw new AccessDeniedException("You are not a participant of this session");
         }
     }

@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAuthStore } from '@/store/authStore'
+import api from '@/services/api'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { AnimatedButton } from '@/components/ui/AnimatedButton'
 import {
@@ -20,8 +21,6 @@ import {
 } from 'lucide-react'
 
 // ─── Payment Content ────────────────────────────────────────────────────────
-
-const STRIPE_PAYMENT_LINK = 'https://buy.stripe.com/test_cNi8wO4dD8S3bj6e9X24000'
 
 function PaymentContent() {
   const router = useRouter()
@@ -47,9 +46,23 @@ function PaymentContent() {
     }
   }, [isAuthenticated, appointmentId])
 
-  const handlePay = () => {
-    setStatus('redirecting')
-    window.location.href = STRIPE_PAYMENT_LINK
+  const handlePay = async () => {
+    try {
+      setStatus('redirecting')
+      // Call our backend API to get a dynamic Stripe Checkout URL
+      const response = await api.post('/v1/payments/initiate', { appointmentId })
+      
+      if (response.data?.checkoutUrl) {
+        // Redirect to the dynamic checkout session
+        window.location.href = response.data.checkoutUrl
+      } else {
+        throw new Error('Secure checkout link could not be generated.')
+      }
+    } catch (err) {
+      console.error('Payment initiation failed:', err)
+      setStatus('error')
+      setErrorMessage('Failed to connect to secure checkout. Please try again later.')
+    }
   }
 
   const formatDate = (dateStr: string) => {
