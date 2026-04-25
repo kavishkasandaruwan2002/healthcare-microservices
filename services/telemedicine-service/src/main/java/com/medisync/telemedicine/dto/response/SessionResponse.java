@@ -4,4 +4,4 @@ import lombok.*;
 import java.time.LocalDateTime;
 import java.util.UUID;
 @Data @Builder @NoArgsConstructor @AllArgsConstructor
-public class SessionResponse { private UUID sessionId; private UUID appointmentId; private UUID patientId; private UUID doctorId; private String channelName; private SessionStatus status; private String agoraAppId; private LocalDateTime scheduledAt; private LocalDateTime startedAt; private LocalDateTime endedAt; private Integer durationMinutes; private Boolean patientJoined; private Boolean doctorJoined; private LocalDateTime createdAt; private LocalDateTime updatedAt; }
+public class SessionResponse { private UUID sessionId; private String appointmentId; private String patientId; private String doctorId; private String channelName; private SessionStatus status; private String agoraAppId; private LocalDateTime scheduledAt; private LocalDateTime startedAt; private LocalDateTime endedAt; private Integer durationMinutes; private Boolean patientJoined; private Boolean doctorJoined; private LocalDateTime createdAt; private LocalDateTime updatedAt; }

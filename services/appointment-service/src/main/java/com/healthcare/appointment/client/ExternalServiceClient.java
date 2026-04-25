@@ -33,12 +33,12 @@ public class ExternalServiceClient {
             Map<String, Object> response = restTemplate.getForObject(url, Map.class);
             if (response == null) {
                 log.warn("Doctor not found: {}", doctorId);
-                return new HashMap<>();
+                return null;
             }
             return response;
-        } catch (RestClientException e) {
+        } catch (Exception e) {
             log.error("Failed to fetch doctor details for ID: {}. Error: {}", doctorId, e.getMessage());
-            return new HashMap<>();
+            return null;
         }
     }
 
@@ -53,12 +53,12 @@ public class ExternalServiceClient {
             Map<String, Object> response = restTemplate.getForObject(url, Map.class);
             if (response == null) {
                 log.warn("Patient not found: {}", patientId);
-                return new HashMap<>();
+                return null;
             }
             return response;
-        } catch (RestClientException e) {
+        } catch (Exception e) {
             log.error("Failed to fetch patient details for ID: {}. Error: {}", patientId, e.getMessage());
-            return new HashMap<>();
+            return null;
         }
     }
 

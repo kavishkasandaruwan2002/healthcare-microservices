@@ -12,9 +12,9 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 public class AppointmentConfirmedEvent {
-    private UUID appointmentId;
-    private UUID patientId;
-    private UUID doctorId;
+    private String appointmentId;
+    private String patientId;
+    private String doctorId;
     private BigDecimal consultationFee;
     private String currency;
     private String doctorName;

@@ -7,10 +7,12 @@ spring:
   cloud:
     gateway:
       globalcors:
+        add-to-simple-url-handler-mapping: true
         cors-configurations:
           '[/**]':
             allowedOrigins: 
               - "http://localhost:3001"
+              - "http://localhost:3000"
             allowedMethods:
               - GET
               - POST
@@ -41,7 +43,7 @@ spring:
         - id: payment-service
           uri: lb://payment-service
           predicates:
-            - Path=/api/v1/payments/**
+            - Path=/api/v1/payments/**, /api/payments/**
         - id: notification-service
           uri: lb://notification-service
           predicates:
@@ -51,7 +53,8 @@ spring:
           predicates:
             - Path=/api/telemedicine/**
           filters:
-            - RewritePath=/api/telemedicine/(?<segment>.*), /api/v1/$\{segment}
+            # Only rewrite if it's NOT the swagger docs
+            - RewritePath=/api/telemedicine/(?!v3/api-docs)(?<segment>.*), /api/v1/$\{segment}
         - id: ai-service
           uri: lb://ai-service
           predicates:
@@ -68,26 +71,33 @@ management:
 
 eureka:
   client:
-    serviceUrl:
-      defaultZone: ${EUREKA_SERVER:http://localhost:8761/eureka/}
+    service-url:
+      defaultZone: ${EUREKA_SERVER:http://eureka:8761/eureka/}
 
 springdoc:
   swagger-ui:
     path: /swagger-ui.html
-    urls:
-      - name: Auth Service
-        url: /api/auth/v3/api-docs
-      - name: Patient Service
-        url: /api/patients/v3/api-docs
-      - name: Doctor Service
-        url: /api/doctors/v3/api-docs
-      - name: Appointment Service
-        url: /api/appointments/v3/api-docs
-      - name: Payment Service
-        url: /api/payments/v3/api-docs
-      - name: Notification Service
-        url: /api/notifications/v3/api-docs
-      - name: Telemedicine Service
-        url: /api/telemedicine/v3/api-docs
-      - name: AI Service
-        url: /api/ai/v3/api-docs
+  urls:
+    - name: Auth Service
+      url: /api/auth/v3/api-docs
+    - name: Patient Service
+      url: /api/patients/v3/api-docs
+    - name: Doctor Service
+      url: /api/doctors/v3/api-docs
+    - name: Appointment Service
+      url: /api/appointments/v3/api-docs
+    - name: Payment Service
+      url: /api/v1/payments/v3/api-docs
+    - name: Notification Service
+      url: /api/notifications/v3/api-docs
+    - name: Telemedicine Service
+      url: /api/telemedicine/v3/api-docs
+    - name: AI Service
+      url: /api/ai/v3/api-docs
+
+logging:
+  level:
+    org.springframework.cloud.gateway: TRACE
+    org.springframework.http.server.reactive: DEBUG
+    org.springframework.web.reactive: DEBUG
+    com.netflix.discovery: INFO

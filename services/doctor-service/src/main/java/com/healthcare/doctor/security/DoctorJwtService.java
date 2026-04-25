@@ -33,21 +33,30 @@ public class DoctorJwtService {
         return claimsResolver.apply(claims);
     }
 
-    public String generateToken(UserDetails userDetails) {
-        return generateToken(new HashMap<>(), userDetails);
+    public String generateToken(UserDetails userDetails, String userId) {
+        return generateToken(new HashMap<>(), userDetails, userId);
     }
 
-    public String generateToken(Map<String, Object> extraClaims, UserDetails userDetails) {
-        return buildToken(extraClaims, userDetails, jwtExpiration);
+    public String generateToken(Map<String, Object> extraClaims, UserDetails userDetails, String userId) {
+        return buildToken(extraClaims, userDetails, userId, jwtExpiration);
     }
 
     private String buildToken(
             Map<String, Object> extraClaims,
             UserDetails userDetails,
+            String userId,
             long expiration) {
+        
+        String role = userDetails.getAuthorities().stream()
+                .map(a -> a.getAuthority())
+                .findFirst()
+                .orElse("ROLE_DOCTOR");
+
         return Jwts
                 .builder()
                 .setClaims(extraClaims)
+                .claim("userId", userId)
+                .claim("role", role)
                 .setSubject(userDetails.getUsername())
                 .setIssuedAt(new Date(System.currentTimeMillis()))
                 .setExpiration(new Date(System.currentTimeMillis() + expiration))

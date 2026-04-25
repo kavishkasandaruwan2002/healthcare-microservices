@@ -24,6 +24,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
+        System.out.println("JwtAuthFilter: Processing request to " + request.getRequestURI());
 
         if (request.getRequestURI().contains("/stripe-callback")) {
             filterChain.doFilter(request, response);
@@ -54,12 +55,11 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                     SecurityContextHolder.getContext().setAuthentication(authToken);
                 }
             } else {
-                System.err.println("JWT isValid returned false!");
+                System.err.println("JWT isValid returned false for token: " + jwt.substring(0, Math.min(jwt.length(), 10)) + "...");
             }
         } catch (Exception e) {
-            System.err.println("JWT Auth Filter Exception: " + e.getMessage());
-            e.printStackTrace();
-            // Log error if needed, but don't interrupt filter chain
+            System.err.println("JWT Auth Filter Exception [" + e.getClass().getSimpleName() + "]: " + e.getMessage());
+            // If it's a signature mismatch, it will likely throw a SignatureException or ExpiredJwtException
         }
 
         filterChain.doFilter(request, response);

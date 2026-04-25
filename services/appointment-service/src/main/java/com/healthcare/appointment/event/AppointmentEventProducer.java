@@ -2,7 +2,7 @@ package com.healthcare.appointment.event;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -10,7 +10,8 @@ import org.springframework.stereotype.Service;
 @Slf4j
 public class AppointmentEventProducer {
 
-    private final KafkaTemplate<String, AppointmentEvent> kafkaTemplate;
+    private final RabbitTemplate rabbitTemplate;
+    private static final String EXCHANGE = "appointment.exchange";
 
     public void publishCreatedEvent(AppointmentEvent event) {
         log.info("Publishing AppointmentCreated event for ID: {}", event.getAppointmentId());
@@ -50,13 +51,13 @@ public class AppointmentEventProducer {
         }
     }
 
-    private void safeSend(String topic, AppointmentEvent event) {
+    private void safeSend(String routingKey, AppointmentEvent event) {
         try {
-            kafkaTemplate.send(topic, event);
+            rabbitTemplate.convertAndSend(EXCHANGE, routingKey, event);
         } catch (Exception e) {
-            log.error("Failed to publish event to topic {} for appointment {}: {}",
-                    topic, event.getAppointmentId(), e.getMessage());
-            // Kafka failure must NOT crash the appointment workflow
+            log.error("Failed to publish event with routing key {} for appointment {}: {}",
+                    routingKey, event.getAppointmentId(), e.getMessage());
+            // RabbitMQ failure must NOT crash the appointment workflow
         }
     }
 }

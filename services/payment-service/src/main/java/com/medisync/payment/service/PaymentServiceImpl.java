@@ -17,6 +17,7 @@ import com.stripe.model.Charge;
 import com.stripe.model.Invoice;
 import com.stripe.model.Subscription;
 import com.stripe.model.checkout.Session;
+import com.stripe.param.checkout.SessionCreateParams;
 import java.math.BigDecimal;
 import com.medisync.payment.messaging.PaymentEventPublisher;
 import com.medisync.payment.repository.PaymentRepository;
@@ -93,7 +94,7 @@ public class PaymentServiceImpl implements PaymentService {
 
     @Override
     @Transactional
-    public PaymentInitiateResponse initiatePayment(UUID appointmentId, UUID patientId) {
+    public PaymentInitiateResponse initiatePayment(String appointmentId, String patientId) {
         Payment payment = paymentRepository.findByAppointmentId(appointmentId)
                 .orElseThrow(() -> new PaymentNotFoundException("Payment record not found for appointment: " + appointmentId));
 
@@ -101,39 +102,54 @@ public class PaymentServiceImpl implements PaymentService {
             throw new PaymentAlreadyCompletedException("Payment already completed for this appointment");
         }
 
-        if (payment.getStripePaymentIntentId() == null) {
-            try {
-                long amountInCents = payment.getAmount().multiply(new BigDecimal(100)).longValue();
-                
-                PaymentIntentCreateParams params = PaymentIntentCreateParams.builder()
-                        .setAmount(amountInCents)
-                        .setCurrency(payment.getCurrency().toLowerCase())
-                        .setDescription(payment.getDescription())
-                        .putMetadata("appointmentId", appointmentId.toString())
-                        .putMetadata("patientId", patientId.toString())
-                        .build();
+        try {
+            long amountInCents = payment.getAmount().multiply(new BigDecimal(100)).longValue();
+            
+            SessionCreateParams params = SessionCreateParams.builder()
+                    .setMode(SessionCreateParams.Mode.PAYMENT)
+                    .setSuccessUrl("http://localhost:3001/patient/dashboard?payment=success&appointmentId=" + appointmentId)
+                    .setCancelUrl("http://localhost:3001/patient/payment?appointmentId=" + appointmentId + "&error=cancelled")
+                    .addLineItem(
+                            SessionCreateParams.LineItem.builder()
+                                    .setQuantity(1L)
+                                    .setPriceData(
+                                            SessionCreateParams.LineItem.PriceData.builder()
+                                                    .setCurrency(payment.getCurrency().toLowerCase())
+                                                    .setUnitAmount(amountInCents)
+                                                    .setProductData(
+                                                            SessionCreateParams.LineItem.PriceData.ProductData.builder()
+                                                                    .setName("Doctor Consultation - " + payment.getDescription())
+                                                                    .build()
+                                                    )
+                                                    .build()
+                                    )
+                                    .build()
+                    )
+                    .putMetadata("appointmentId", appointmentId)
+                    .putMetadata("patientId", patientId)
+                    .build();
 
-                PaymentIntent intent = stripeGateway.createPaymentIntent(params);
-                
-                payment.setStripePaymentIntentId(intent.getId());
-                payment.setStripeClientSecret(intent.getClientSecret());
-                paymentRepository.save(payment);
-                
-                paymentsInitiatedCounter.increment();
-            } catch (StripeException e) {
-                log.error("Stripe error creating PaymentIntent", e);
-                throw new RuntimeException("Payment gateway error: " + e.getMessage());
-            }
+            Session session = stripeGateway.createCheckoutSession(params);
+            
+            // Note: In Checkout, the PaymentIntent is created AFTER the session is started/completed
+            // For now, we store the Session ID to track it
+            payment.setStripeClientSecret(session.getId()); 
+            paymentRepository.save(payment);
+            
+            paymentsInitiatedCounter.increment();
+            
+            return PaymentInitiateResponse.builder()
+                    .paymentId(payment.getPaymentId())
+                    .checkoutUrl(session.getUrl())
+                    .amount(payment.getAmount())
+                    .currency(payment.getCurrency())
+                    .status(payment.getStatus().name())
+                    .stripePublishableKey(stripePublishableKey)
+                    .build();
+        } catch (StripeException e) {
+            log.error("Stripe error creating Checkout Session", e);
+            throw new RuntimeException("Payment gateway error: " + e.getMessage());
         }
-
-        return PaymentInitiateResponse.builder()
-                .paymentId(payment.getPaymentId())
-                .clientSecret(payment.getStripeClientSecret())
-                .amount(payment.getAmount())
-                .currency(payment.getCurrency())
-                .status(payment.getStatus().name())
-                .stripePublishableKey(stripePublishableKey)
-                .build();
     }
 
     @Override
@@ -222,7 +238,7 @@ public class PaymentServiceImpl implements PaymentService {
         }
 
         Payment payment = Payment.builder()
-                .patientId(UUID.fromString(patientIdStr))
+                .patientId(patientIdStr)
                 .amount(BigDecimal.valueOf(invoice.getAmountPaid()).divide(BigDecimal.valueOf(100)))
                 .currency(invoice.getCurrency().toUpperCase())
                 .status(PaymentStatus.SUCCESS)
@@ -247,18 +263,14 @@ public class PaymentServiceImpl implements PaymentService {
             log.info("WEBHOOK_DB: Payment not found for intent {}. Creating a new one for logging purposes.", intentId);
             
             String patientIdStr = (intent != null && intent.getMetadata() != null) ? intent.getMetadata().get("patientId") : null;
-            UUID patientId = null;
+            String patientId = null;
             
-            try {
-                if (patientIdStr != null) {
-                    patientId = UUID.fromString(patientIdStr);
-                }
-            } catch (Exception e) {
-                log.warn("WEBHOOK_DB: Invalid patientId in metadata: {}", patientIdStr);
+            if (patientIdStr != null) {
+                patientId = patientIdStr;
             }
             
             if (patientId == null) {
-                patientId = UUID.fromString("00000000-0000-0000-0000-000000000000");
+                patientId = "00000000-0000-0000-0000-000000000000";
             }
 
             payment = Payment.builder()
@@ -290,7 +302,7 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     @Override
-    public PaymentResponse getPaymentById(UUID paymentId, UUID userId, String role) {
+    public PaymentResponse getPaymentById(UUID paymentId, String userId, String role) {
         Payment payment = paymentRepository.findById(paymentId)
                 .orElseThrow(() -> new PaymentNotFoundException("Payment not found"));
 
@@ -299,7 +311,7 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     @Override
-    public PaymentResponse getPaymentByAppointmentId(UUID appointmentId, UUID userId, String role) {
+    public PaymentResponse getPaymentByAppointmentId(String appointmentId, String userId, String role) {
         Payment payment = paymentRepository.findByAppointmentId(appointmentId)
                 .orElseThrow(() -> new PaymentNotFoundException("Payment not found for appointment"));
 
@@ -307,7 +319,7 @@ public class PaymentServiceImpl implements PaymentService {
         return mapToResponse(payment);
     }
 
-    private void validateAccess(Payment payment, UUID userId, String role) {
+    private void validateAccess(Payment payment, String userId, String role) {
         boolean isAdmin = role.contains("ADMIN");
         boolean isDoctor = role.contains("DOCTOR") && payment.getDoctorId().equals(userId);
         boolean isPatient = role.contains("PATIENT") && payment.getPatientId().equals(userId);
@@ -318,7 +330,7 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     @Override
-    public Page<PaymentResponse> getMyPayments(UUID patientId, String status, Pageable pageable) {
+    public Page<PaymentResponse> getMyPayments(String patientId, String status, Pageable pageable) {
         PaymentStatus s = status != null ? PaymentStatus.valueOf(status.toUpperCase()) : null;
         return paymentRepository.findAllWithFilters(s, patientId, pageable).map(this::mapToResponse);
     }
@@ -381,7 +393,7 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     @Override
-    public Page<PaymentResponse> getAllPayments(String status, UUID patientId, Pageable pageable) {
+    public Page<PaymentResponse> getAllPayments(String status, String patientId, Pageable pageable) {
         PaymentStatus s = status != null ? PaymentStatus.valueOf(status.toUpperCase()) : null;
         return paymentRepository.findAllWithFilters(s, patientId, pageable).map(this::mapToResponse);
     }

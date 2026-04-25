@@ -75,7 +75,7 @@ public class DoctorService {
                 savedDoctor.getPassword(),
                 Collections.singletonList(new SimpleGrantedAuthority("ROLE_DOCTOR")));
 
-        String jwtToken = jwtService.generateToken(userDetails);
+            String jwtToken = jwtService.generateToken(userDetails, savedDoctor.getId());
         DoctorDTO doctorDTO = mapToDTO(savedDoctor);
 
         return DoctorAuthResponse.builder()
@@ -97,7 +97,7 @@ public class DoctorService {
                     doctor.getPassword(),
                     Collections.singletonList(new SimpleGrantedAuthority("ROLE_DOCTOR")));
 
-            String jwtToken = jwtService.generateToken(userDetails);
+            String jwtToken = jwtService.generateToken(userDetails, doctor.getId());
             DoctorDTO doctorDTO = mapToDTO(doctor);
 
             log.info("Doctor logged in successfully: {}", email);

@@ -14,9 +14,9 @@ import java.util.UUID;
 @AllArgsConstructor
 public class PaymentEventPayload {
     private UUID paymentId;
-    private UUID appointmentId;
-    private UUID patientId;
-    private UUID doctorId;
+    private String appointmentId;
+    private String patientId;
+    private String doctorId;
     private BigDecimal amount;
     private String currency;
     private String status;

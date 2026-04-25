@@ -68,14 +68,14 @@ class PaymentControllerTest {
     private JpaMetamodelMappingContext jpaMappingContext;
 
     private UUID paymentId;
-    private UUID appointmentId;
-    private UUID patientId;
+    private String appointmentId;
+    private String patientId;
 
     @BeforeEach
     void setUp() {
         paymentId = UUID.randomUUID();
-        appointmentId = UUID.randomUUID();
-        patientId = UUID.randomUUID();
+        appointmentId = UUID.randomUUID().toString();
+        patientId = UUID.randomUUID().toString();
     }
 
     @Test
@@ -165,7 +165,7 @@ class PaymentControllerTest {
     @Test
     @WithMockUser(roles = "PATIENT")
     void getPayment_asOtherPatient_returns404() throws Exception {
-        when(paymentService.getPaymentById(any(UUID.class), any(UUID.class), anyString()))
+        when(paymentService.getPaymentById(any(UUID.class), any(String.class), anyString()))
                 .thenThrow(new PaymentNotFoundException("Payment not found"));
 
         mockMvc.perform(get("/api/v1/payments/" + paymentId)

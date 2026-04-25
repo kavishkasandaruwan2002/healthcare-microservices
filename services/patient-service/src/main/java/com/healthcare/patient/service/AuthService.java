@@ -59,7 +59,7 @@ public class AuthService {
                                 savedPatient.getPassword(),
                                 Collections.singletonList(new SimpleGrantedAuthority(savedPatient.getRole())));
 
-                String jwtToken = jwtService.generateToken(userDetails);
+                String jwtToken = jwtService.generateToken(userDetails, savedPatient.getId());
                 UserDto userDto = UserDto.builder()
                                 .id(savedPatient.getId())
                                 .email(savedPatient.getEmail())
@@ -74,6 +74,7 @@ public class AuthService {
         }
 
         public AuthResponse login(LoginRequest request) {
+                log.info("Login attempt for email: {}", request.getEmail());
                 authenticationManager.authenticate(
                                 new UsernamePasswordAuthenticationToken(
                                                 request.getEmail(),
@@ -87,7 +88,7 @@ public class AuthService {
                                 patient.getPassword(),
                                 Collections.singletonList(new SimpleGrantedAuthority(patient.getRole())));
 
-                String jwtToken = jwtService.generateToken(userDetails);
+                String jwtToken = jwtService.generateToken(userDetails, patient.getId());
                 UserDto userDto = UserDto.builder()
                                 .id(patient.getId())
                                 .email(patient.getEmail())
