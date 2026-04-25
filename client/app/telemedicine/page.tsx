@@ -240,8 +240,8 @@ function TelemedicineContent() {
     // that checks `cancelled` will bail out before touching state or client.
     return () => {
       cancelled = true
-      if (localAudio) { localAudio.stop(); localAudio.close() }
-      if (localVideo) { localVideo.stop(); localVideo.close() }
+      try { if (localAudio) { localAudio.stop(); localAudio.close() } } catch (_) {}
+      try { if (localVideo) { localVideo.stop(); localVideo.close() } } catch (_) {}
       if (localClient) { localClient.leave().catch(() => {}) }
     }
   }, [isAuthenticated, user, sessionId, appointmentId])

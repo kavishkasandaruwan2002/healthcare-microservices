@@ -217,7 +217,7 @@ export default function PatientDashboard() {
                         <AnimatedButton variant="glass" size="sm" className="flex-1 md:flex-none h-10 px-6">
                           Details
                         </AnimatedButton>
-                        <AnimatedButton variant="primary" size="sm" className="flex-1 md:flex-none h-10 px-6 bg-primary-600 shadow-primary-500/20" onClick={() => router.push(`/telemedicine/${apt.id}`)}>
+                        <AnimatedButton variant="primary" size="sm" className="flex-1 md:flex-none h-10 px-6 bg-primary-600 shadow-primary-500/20" onClick={() => router.push(`/telemedicine?appointmentId=${apt.id}`)}>
                           Join Call
                         </AnimatedButton>
                       </div>
