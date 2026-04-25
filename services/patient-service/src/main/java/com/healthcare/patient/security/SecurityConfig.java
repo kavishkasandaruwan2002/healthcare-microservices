@@ -15,6 +15,7 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
 @Configuration
 @EnableWebSecurity
@@ -45,14 +46,14 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
-                                "/api/patients/register",
-                                "/api/patients/login",
-                                "/api/patients/health",
-                                "/api/patients/all",
-                                "/api/patients/**",
-                                "/swagger-ui/**",
-                                "/v3/api-docs/**",
-                                "/swagger-ui.html"
+                                new AntPathRequestMatcher("/api/patients/register"),
+                                new AntPathRequestMatcher("/api/patients/login"),
+                                new AntPathRequestMatcher("/api/patients/health"),
+                                new AntPathRequestMatcher("/api/patients/all"),
+                                new AntPathRequestMatcher("/api/patients/**"),
+                                new AntPathRequestMatcher("/swagger-ui/**"),
+                                new AntPathRequestMatcher("/v3/api-docs/**"),
+                                new AntPathRequestMatcher("/swagger-ui.html")
                         ).permitAll()
                         .anyRequest().authenticated()
                 )

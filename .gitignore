@@ -25,7 +25,6 @@ replay_pid*
 .idea/
 
 TECH_STACK.md
-.env
 *.env
 
 # Maven
@@ -42,7 +41,6 @@ buildNumber.properties
 
 # IDE
 .idea/
-.vscode/
 *.iml
 *.ipr
 *.iws
@@ -63,3 +61,5 @@ docker-compose.override.yml
 
 # Documentation (local development notes)
 README.md
+config.bat
+node_modules
