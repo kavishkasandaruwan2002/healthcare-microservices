@@ -54,7 +54,6 @@ out/
 bin/
 
 # VS Code
-.vscode/
 *.code-workspace
 .history/
 .project
@@ -127,8 +126,6 @@ dist/
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 # Environment variable files (NEVER commit these!)
-.env
-.env.local
 .env.*.local
 .env.production.local
 .env.development.local
@@ -165,7 +162,6 @@ replay_pid*
 .idea/
 
 TECH_STACK.md
-.env
 *.env
 
 # Maven
@@ -182,7 +178,6 @@ buildNumber.properties
 
 # IDE
 .idea/
-.vscode/
 *.iml
 *.ipr
 *.iws
@@ -238,7 +233,6 @@ ehthumbs.db
 Desktop.ini
 $RECYCLE.BIN/
 *.lnk
-.vscode
 
 # Linux
 .directory
@@ -343,3 +337,4 @@ generated/
 # OS locks
 .DS_Store
 Thumbs.db
+config.bat
